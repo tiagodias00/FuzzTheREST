@@ -1,0 +1,17 @@
+name: FuzzTheREST_Env
+channels:
+  - defaults
+dependencies:
+  - pip
+  - python
+  - ipykernel
+  - pip:
+    - gym
+    - matplotlib
+    - numpy
+    - IPython
+    - requests
+    - PyYAML
+    - openapi-python-client
+    - textblob
+    - Pillow
