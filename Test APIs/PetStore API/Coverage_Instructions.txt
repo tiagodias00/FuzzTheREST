@@ -1,0 +1,13 @@
+1 - criar a imagem do dockerfile que se encontra neste diretorio
+
+	docker build -t petshop_with_jacoco:v1 .
+
+2 - inicializar o container (meter a porta e variaveis de ambiente corretas)
+
+3 - extrair o ficheiro jacoco.exec do docker container
+	
+	cp Petshop_with_Jacoco:/petstore/jacoco.exec coverage_report
+
+4 - com o terminal do coverage report correr o seguinte comando:
+
+	java -jar jacococli.jar report ./jacoco.exec --classfiles ../target/classes/ --html ./html_coverage --xml ./xml_coverage.xml
