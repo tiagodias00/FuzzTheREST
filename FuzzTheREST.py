@@ -23,7 +23,7 @@ def create_json_body(object_data, existing_objects: dict):
         existing_objects (dict): components already built that may be referenced in other components.
 
     Returns:
-        JSON: The component in a JSON format. 
+        JSON: The component in a JSON format.
     """
     json_body = {}
     property_dict = {}
@@ -53,7 +53,7 @@ def create_json_body(object_data, existing_objects: dict):
             return existing_objects.get(prop_data['$ref'].split('/')[-1])
         elif prop_data['type'] == "array":
             return [existing_objects.get(prop_data['items']['$ref'].split('/')[-1])]
-        
+
 
 
 # %%
@@ -63,7 +63,7 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
         if contains_previous:
             sample = fill_previous_body(sample, old_sample)
 
-        for item in sample.items():                
+        for item in sample.items():
             if type(item[1]) is list:
                 list_size = random.randint(0,100)
                 values = []
@@ -73,7 +73,7 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                 else:
                     values = [schema[item[0]][0]] * list_size
                     values[0:len(item[1])] = item[1]
-                
+
                 for i in range(list_size):
                     if type(values[i]) is dict:
                         if type(schema[item[0]]) is list:
@@ -124,7 +124,7 @@ def fill_previous_body(schema, old_sample):
                 sample[item[0]] = fill_previous_body(sample[item[0]], item[1])
             else:
                 sample[item[0]] = item[1]
-    
+
 
     return sample
 
@@ -143,10 +143,10 @@ def fill_parameter_values(input_parameters, contains_previous, mutation_methods)
                 else:
                     values = [random_generation(type(parameter['sample'][0]))] * list_size
                     values[0:len(parameter['sample'])] = parameter['sample']
-                
+
                 for i in range(list_size):
                     values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], parameter_name)
-                
+
             else:
                 for i in range(list_size):
                     values.append(get_mutated_value(None, parameter['schema'][0], None, parameter_name))
@@ -451,7 +451,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         mutation_methods[bool] = self.mutation_methods[2][action[2]]
         mutation_methods[bytes] = self.mutation_methods[3][action[3]]
         mutation_methods[str] = self.mutation_methods[4][action[4]]
-        
+
         resp = ""
         count = -1
         while type(resp) is str:
@@ -469,8 +469,8 @@ class APIFuzzyTestingEnvironment(gym.Env):
                     count = 0
                 else:
                     self.function = fill_values(self.function, True, mutation_methods, False)
-                
-            
+
+
             resp = self._execute_action(self.function)
 
         self.response = resp
@@ -505,7 +505,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                     return requests.get(self.base_url + path, params=parameters, timeout=40)
                 else:
                     return requests.get(self.base_url + path, timeout=40)
-            
+
             elif function['method'] == 'PUT':
                 if len(parameters) > 0:
                     return requests.put(self.base_url + path, json=function['input_body']['sample'], headers=headers, params=parameters, timeout=40)
@@ -517,7 +517,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                     return requests.delete(self.base_url + path, json=function['input_body']['sample'], headers=headers, params=parameters, timeout=40)
                 else:
                     return requests.delete(self.base_url + path, json=function['input_body']['sample'], headers=headers, timeout=40)
-            
+
             elif function['method'] == 'POST':
                 if function['content-type'] == "multipart/form-data":
                     files = {'file': function['input_body']['sample'].pop('file')}
@@ -547,7 +547,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
             return -20
         elif int(self.response.status_code) >= 500:
             return 10
-        
+
         return 0
 
 
@@ -570,7 +570,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
     def _change_environment_function(self, function):
         self.function = function
-    
+
     def render(self, mode='human'):
         # Implement the logic to visualize the environment if needed
         if mode == 'human':
@@ -662,7 +662,7 @@ class QLearningAgent:
                     chosen_method = self.mutation_methods[i][action[i]]  # Get the chosen mutation method dynamically
                     self.mutation_counts[i][chosen_method] += 1
                     self.mutation_rewards[i][chosen_method].append(reward)
-                
+
                 state = new_state
                 rewards_current_episode += reward
                 self.episode_rewards.append(reward)
@@ -674,9 +674,9 @@ class QLearningAgent:
             # Exploration rate decay
             self.exploration_rate = self.min_exploration_rate + \
                 (self.max_exploration_rate - self.min_exploration_rate) * np.exp(-self.exploration_decay_rate*episode)
-            
+
             self.rewards_all_episodes.append(rewards_current_episode)
-            
+
             self.q_value_convergence['int'].append(np.copy(self.int_q_table))
             self.q_value_convergence['float'].append(np.copy(self.float_q_table))
             self.q_value_convergence['bool'].append(np.copy(self.bool_q_table))
@@ -721,55 +721,55 @@ class QLearningAgent:
         for i in range(len(self.mutation_counts)):
             mutation_methods = list(self.mutation_counts[i].keys())
             method_counts = list(self.mutation_counts[i].values())
-            
+
             indices = np.arange(len(mutation_methods))
-            
+
             # Define a list of colors for the columns
             colors = plt.cm.viridis(np.linspace(0, 1, len(mutation_methods)))
-            
+
             # Use the 'colors' list to set different colors for each column
             bars = plt.bar(indices, method_counts, color=colors)
-            
+
             plt.xticks(indices, indices)
             plt.xlabel('Mutation Method Index')
             plt.ylabel('Action Counts')
             plt.title(f'Action Distribution for {data_types[i]}')
-            
+
             # Create custom legend handles for each mutation method
             legend_handles = [mpatches.Patch(color=colors[j], label=mutation_method.__name__) for j, mutation_method in enumerate(mutation_methods)]
-            
+
             # Move the legend outside the plot
             plt.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(1, 1))
-            
+
             # Annotate each bar with the exact number on top
             for j, count in enumerate(method_counts):
                 plt.text(j, count + 0.1, str(count), ha='center', va='bottom')
-            
+
             plt.savefig(base_path + "q_action_distribution_" + str(i) + ".png", bbox_inches='tight')
             plt.close()
-    
+
     def plot_state_visits(self, base_path):
         states = list(range(len(self.state_visits)))
         visit_counts = list(self.state_visits)
-        
+
         # Define legend labels for HTTP status code ranges
         legend_labels = ['1XX', '2XX', '3XX', '4XX', '5XX']
-        
+
         # Define colors for each HTTP status code range
         colors = ['lightblue', 'green', 'yellow', 'orange', 'red']
-        
+
         plt.bar(states, visit_counts, color=colors)
         plt.xlabel('HTTP Status Code Ranges')
         plt.ylabel('Number of Visits')
         plt.title('Number of Visits to Each HTTP Status Code Range')
-        
+
         # Set x-axis ticks and labels to the legend labels
         plt.xticks(states, legend_labels)
-        
+
         # Annotate each bar with the exact number on top
         for state, count in zip(states, visit_counts):
             plt.text(state, count + 0.1, str(count), ha='center', va='bottom')
-        
+
         plt.savefig(base_path + "state_visits.png", bbox_inches='tight')
         plt.close()
 
@@ -780,7 +780,7 @@ class QLearningAgent:
             done = False
 
             print("*******Episode ", episode+1, "*******\n\n")
-            for step in range(self.max_steps_per_episode):        
+            for step in range(self.max_steps_per_episode):
                 # Choose action with highest Q-value for current state
                 self.env.render()
                 # Take new action
@@ -823,7 +823,7 @@ def write_agent_report(base_folder, agent_name, agent: QLearningAgent):
                 else:
                     decoded_request[key] = value
             requests_log_decoded.append(decoded_request)
-        
+
         with open(base_folder + "/" + agent_name + "/report.log", "w") as file:
             file.write("\n\n------ List of IDs ------\n\n")
             json.dump(ids, file, indent=4)
@@ -840,7 +840,7 @@ def write_agent_report(base_folder, agent_name, agent: QLearningAgent):
             file.write(str(agent.string_q_table))
             file.write("\n   Byte table\n")
             file.write(str(agent.byte_q_table))
-            
+
             agent.plot_q_value_convergence(base_folder + "/" + agent_name + "/")
             agent.plot_action_distribution(base_folder + "/" + agent_name + "/")
             agent.plot_state_visits(base_folder + "/" + agent_name + "/")
@@ -849,6 +849,7 @@ def write_agent_report(base_folder, agent_name, agent: QLearningAgent):
 
 # %%
 # Read the OpenAPI specification file (assuming it's in YAML format)
+
 with open('openapi_petshop.yaml', 'r') as file:
     spec = yaml.safe_load(file)
 
@@ -934,11 +935,11 @@ for path, path_item in spec['paths'].items():
                         schema = schemas.get(schema_name)
                 else:
                     schema = input_schema['type']
-            
+
             if '$ref' in input_schema:
                 schema_name = input_schema['$ref'].split('/')[-1]
                 schema = schemas.get(schema_name)
-        
+
         if schema is None:
             input_body = {"schema": [], "sample": None}
 
@@ -955,8 +956,6 @@ for path, path_item in spec['paths'].items():
         # Store the information in the functions dictionary
         functions[function_name] = function
 
-# Print the base URL and functions dictionary
-print("Base URL:", base_url)
 
 # %%
 # Initialize mutation methods for different data types
@@ -977,17 +976,17 @@ mutation_methods = [int_mutation_methods, float_mutation_methods, bool_mutation_
 scenarios = [["addPet", "updatePet", "getPetById", "findPetsByStatus", "findPetsByTags", "uploadFile", "updatePetWithForm", "deletePet"], ["createUser", "loginUser", "updateUser", "logoutUser", "getUserByName", "deleteUser"], ["placeOrder", "getOrderById", "getInventory", "deleteOrder"]]
 env = None
 requests_log=[]
-
 for scenario_functions in scenarios:
     for function in scenario_functions:
         requests_log = []
-        print("Starting " + function)
+        print("Starting ")
+
         if env is None:
             # Create an instance of the API testing environment
             env = APIFuzzyTestingEnvironment(base_url, functions[function], mutation_methods)
         else:
             env._change_environment_function(functions[function])
-        
+
         # Create an instance of the Q-Learning agent
         agent = QLearningAgent(env,mutation_methods,10,exploration_rate=1)
 

@@ -1,0 +1,36 @@
+@startuml
+
+class HTTPRequest {
+    method: String
+    path: String
+    headers: Dictionary
+    body: Object
+}
+
+class RequestResponse {
+    statusCode: int
+    headers: Dictionary
+    body: Object
+}
+
+class TestMetrics {
+totalRequests: int
+CodeCoverage: int
+UniqueCrashes: int
+}
+
+class OpenApiSpecifications {
+endpoints: List
+parameters: List
+schemas: Dictionary
+}
+
+
+
+OpenApiSpecifications "1" --> "many" HTTPRequest : informs Creation >
+HTTPRequest "1" --> "1" TestMetrics : generates >
+HTTPRequest "1" --> "1" RequestResponse : receives >
+
+
+@enduml
+
