@@ -980,7 +980,6 @@ for scenario_functions in scenarios:
     for function in scenario_functions:
         requests_log = []
         print("Starting ")
-
         if env is None:
             # Create an instance of the API testing environment
             env = APIFuzzyTestingEnvironment(base_url, functions[function], mutation_methods)

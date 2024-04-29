@@ -369,3 +369,12 @@ def get_mutated_value(old_value, datatype, method, schema_name,ids):
                     return from_binary(method(new_value_bin), datatype)
             else:
                 return method(old_value)
+
+int_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation, dictionary_fuzzy]
+float_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation]
+bool_mutation_methods = [bit_flips, byte_shuffling, random_generation]
+byte_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation]
+str_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation, random_generation]
+
+# Combine all mutation methods into a single list
+mutation_methods = [int_mutation_methods, float_mutation_methods, bool_mutation_methods, byte_mutation_methods, str_mutation_methods]
