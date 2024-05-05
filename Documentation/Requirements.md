@@ -3,7 +3,6 @@
 ## Functionality
 - **Security** The system must ensure data integrity and security
 
-
 ## Usability
 -  The system should provide meaningful error messages and support easy troubleshooting and recovery from errors.
 

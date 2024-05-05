@@ -152,7 +152,9 @@ def parse_OpenApi_file(file_path: str):
             # Store the information in the functions dictionary
             functions[function_name] = function
 
+
     return {
         'functions': functions,
-        'base_url': base_url
+        'base_url': base_url,
+        'ids': ids
     }

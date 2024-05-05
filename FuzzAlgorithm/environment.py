@@ -1,30 +1,18 @@
 import copy
-import json
-import gym
-from gym.spaces import MultiDiscrete, Discrete
-import numpy as np
-import requests
-import uuid
 import pickle
+
+import gym
+import requests
+from gym.spaces import MultiDiscrete, Discrete
 
 from utils import fill_values
 
 requests_log = []
 
 
-def initialize_environment(base_url, function, mutation_methods):
-    env = APIFuzzyTestingEnvironment(base_url, function, mutation_methods)
-    return env
-
-
-def deserialize(data):
-    return pickle.loads(data)
-
-
 class APIFuzzyTestingEnvironment(gym.Env):
-    def __init__(self, base_url, function, mutation_methods,env_id=None):
+    def __init__(self, base_url, function, mutation_methods,ids):
         super(APIFuzzyTestingEnvironment, self).__init__()
-        self.id = env_id or str(uuid.uuid4())
         self.function = function
         self.base_url = base_url
         self.response = None
@@ -32,7 +20,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.action_space: MultiDiscrete = MultiDiscrete([len(methods) for methods in mutation_methods])
         self.observation_space: Discrete = Discrete(5)  # Possible HTTP error codes.
         self.done = False
-
+        self.ids=  ids
 
     def step(self, action):
         # Execute the action on the API and get the response
@@ -50,16 +38,16 @@ class APIFuzzyTestingEnvironment(gym.Env):
             if self.function['method'] == 'POST':
                 if count == 5:
                     print("stuck here")
-                    self.function = fill_values(self.function, False, mutation_methods, True)
+                    self.function = fill_values(self.function, False, mutation_methods, True,self.ids)
                     count = 0
                 else:
-                    self.function = fill_values(self.function, True, mutation_methods, True)
+                    self.function = fill_values(self.function, True, mutation_methods, True,self.ids)
             else:
                 if count == 5:
-                    self.function = fill_values(self.function, False, mutation_methods, False)
+                    self.function = fill_values(self.function, False, mutation_methods, False,self.ids)
                     count = 0
                 else:
-                    self.function = fill_values(self.function, True, mutation_methods, False)
+                    self.function = fill_values(self.function, True, mutation_methods, False,self.ids)
 
             resp = self._execute_action(self.function)
 
@@ -188,6 +176,3 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
     def serialize(self):
         return pickle.dumps(self)
-
-
-

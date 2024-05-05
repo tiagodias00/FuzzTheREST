@@ -425,7 +425,7 @@ def get_mutated_value(old_value, datatype, method, schema_name):
                 return method(old_value)
 
 # %% [markdown]
-# # Reinforcement Learning Environment
+# # Reinforcement Learning FuzzAlgorithm
 
 # %%
 import gym

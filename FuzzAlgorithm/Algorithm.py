@@ -1,14 +1,15 @@
-import os
 import random
-import matplotlib.patches as mpatches
+
 import numpy as np
 from matplotlib import pyplot as plt
-
-from Environment.environment import APIFuzzyTestingEnvironment
+import matplotlib.patches as mpatches
+from FuzzAlgorithm.environment import APIFuzzyTestingEnvironment
 
 
 class QLearningAgent:
-    def __init__(self, env: APIFuzzyTestingEnvironment, mutation_methods, max_steps_per_episode, learning_rate=0.1, discount_factor=0.9, exploration_rate=0.1, min_exploration_rate=0.1, max_exploration_rate=1, exploration_decay_rate=0.01):
+    def __init__(self, env: APIFuzzyTestingEnvironment, mutation_methods, max_steps_per_episode, learning_rate=0.1,
+                 discount_factor=0.9, exploration_rate=0.1, min_exploration_rate=0.1, max_exploration_rate=1,
+                 exploration_decay_rate=0.01):
         self.env = env
         self.int_q_table = np.zeros([env.observation_space.n, len(mutation_methods[0])])
         self.float_q_table = np.zeros([env.observation_space.n, len(mutation_methods[1])])
@@ -23,10 +24,12 @@ class QLearningAgent:
         self.exploration_decay_rate = exploration_decay_rate
         self.max_steps_per_episode = max_steps_per_episode
         self.episode_rewards = []  # To store the rewards obtained in each episode
-        self.rewards_all_episodes=[]
+        self.rewards_all_episodes = []
         self.mutation_methods = mutation_methods
-        self.mutation_counts = {i: {method: 0 for method in mutation_methods[i]} for i in range(env.observation_space.n)}
-        self.mutation_rewards = {i: {method: [] for method in mutation_methods[i]} for i in range(env.observation_space.n)}
+        self.mutation_counts = {i: {method: 0 for method in mutation_methods[i]} for i in
+                                range(env.observation_space.n)}
+        self.mutation_rewards = {i: {method: [] for method in mutation_methods[i]} for i in
+                                 range(env.observation_space.n)}
         self.state_visits = np.zeros(env.observation_space.n)
         self.q_value_convergence = {}
         self.num_episodes = 30
@@ -37,16 +40,16 @@ class QLearningAgent:
             action = self.env.action_space.sample()
         else:
             action = []
-            action.append(np.argmax(int_q_table[state,:]))
-            action.append(np.argmax(float_q_table[state,:]))
-            action.append(np.argmax(bool_q_table[state,:]))
-            action.append(np.argmax(byte_q_table[state,:]))
-            action.append(np.argmax(string_q_table[state,:]))
+            action.append(np.argmax(int_q_table[state, :]))
+            action.append(np.argmax(float_q_table[state, :]))
+            action.append(np.argmax(bool_q_table[state, :]))
+            action.append(np.argmax(byte_q_table[state, :]))
+            action.append(np.argmax(string_q_table[state, :]))
         return action
 
     def update_q_table(self, state, action, reward, new_state, q_table):
         q_table[state, action] = q_table[state, action] * (1 - self.learning_rate) + \
-            self.learning_rate * (reward + self.discount_factor * np.max(q_table[new_state, :]))
+                                 self.learning_rate * (reward + self.discount_factor * np.max(q_table[new_state, :]))
 
     def train(self, num_episodes):
         self.q_value_convergence = {
@@ -67,7 +70,8 @@ class QLearningAgent:
             print(episode)
 
             for step in range(self.max_steps_per_episode):
-                action = self.choose_action(state, self.int_q_table, self.float_q_table, self.bool_q_table, self.byte_q_table, self.string_q_table)
+                action = self.choose_action(state, self.int_q_table, self.float_q_table, self.bool_q_table,
+                                            self.byte_q_table, self.string_q_table)
                 new_state, reward, done = self.env.step(action)
                 self.update_q_table(state, action[0], reward, new_state, self.int_q_table)
                 self.update_q_table(state, action[1], reward, new_state, self.float_q_table)
@@ -90,7 +94,8 @@ class QLearningAgent:
 
             # Exploration rate decay
             self.exploration_rate = self.min_exploration_rate + \
-                (self.max_exploration_rate - self.min_exploration_rate) * np.exp(-self.exploration_decay_rate*episode)
+                                    (self.max_exploration_rate - self.min_exploration_rate) * np.exp(
+                -self.exploration_decay_rate * episode)
 
             self.rewards_all_episodes.append(rewards_current_episode)
 
@@ -101,11 +106,11 @@ class QLearningAgent:
             self.q_value_convergence['string'].append(np.copy(self.string_q_table))
 
         # Calculate and print the average reward per hundred episodes
-        rewards_per_number_episodes = np.split(np.array(self.rewards_all_episodes),num_episodes/num_episodes)
+        rewards_per_number_episodes = np.split(np.array(self.rewards_all_episodes), num_episodes / num_episodes)
         count = num_episodes
         print("********Average reward per number of episodes********\n")
         for r in rewards_per_number_episodes:
-            print(count, ": ", str(sum(r/num_episodes)))
+            print(count, ": ", str(sum(r / num_episodes)))
             count += num_episodes
 
     def plot_q_value_convergence(self, base_path):
@@ -126,7 +131,8 @@ class QLearningAgent:
     def plot_learning_curve(self, num_episodes):
         # Calculate the average reward over a fixed number of episodes (e.g., last 100 episodes) and plot the learning curve
         window_size = 10
-        average_rewards = [np.mean(self.episode_rewards[i:i + window_size]) for i in range(len(self.episode_rewards) - window_size + 1)]
+        average_rewards = [np.mean(self.episode_rewards[i:i + window_size]) for i in
+                           range(len(self.episode_rewards) - window_size + 1)]
         plt.plot(range(window_size, num_episodes + 1), average_rewards)
         plt.xlabel('Episodes')
         plt.ylabel('Average Reward')
@@ -153,7 +159,8 @@ class QLearningAgent:
             plt.title(f'Action Distribution for {data_types[i]}')
 
             # Create custom legend handles for each mutation method
-            legend_handles = [mpatches.Patch(color=colors[j], label=mutation_method.__name__) for j, mutation_method in enumerate(mutation_methods)]
+            legend_handles = [mpatches.Patch(color=colors[j], label=mutation_method.__name__) for j, mutation_method in
+                              enumerate(mutation_methods)]
 
             # Move the legend outside the plot
             plt.legend(handles=legend_handles, loc='upper left', bbox_to_anchor=(1, 1))
@@ -190,28 +197,27 @@ class QLearningAgent:
         plt.savefig(base_path + "state_visits.png", bbox_inches='tight')
         plt.close()
 
-
-    def test(self,env):
+    def test(self):
         for episode in range(5):
             state = self.env.reset()
             done = False
 
-            print("*******Episode ", episode+1, "*******\n\n")
+            print("*******Episode ", episode + 1, "*******\n\n")
             for step in range(self.max_steps_per_episode):
                 # Choose action with highest Q-value for current state
                 self.env.render()
                 # Take new action
                 # time.sleep(0.3)
                 action = []
-                action.append(np.argmax(self.int_q_table[state,:]))
-                action.append(np.argmax(self.float_q_table[state,:]))
-                action.append(np.argmax(self.bool_q_table[state,:]))
-                action.append(np.argmax(self.byte_q_table[state,:]))
-                action.append(np.argmax(self.string_q_table[state,:]))
+                action.append(np.argmax(self.int_q_table[state, :]))
+                action.append(np.argmax(self.float_q_table[state, :]))
+                action.append(np.argmax(self.bool_q_table[state, :]))
+                action.append(np.argmax(self.byte_q_table[state, :]))
+                action.append(np.argmax(self.string_q_table[state, :]))
                 new_state, reward, done = self.env.step(action)
 
                 if done:
-                    env.render()
+                    self.env.render()
                     if reward == 1:
                         # Agent reached the goal and won episode
                         print("****You reached the goal****")
@@ -222,5 +228,3 @@ class QLearningAgent:
                     # time.sleep(3)
 
                 state = new_state
-
-
