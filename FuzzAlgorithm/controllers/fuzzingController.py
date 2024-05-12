@@ -1,28 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from typing import Tuple
 
-from FuzzAlgorithm.services.FuzzAlgorithmService import FuzzAlgorithmService
+from fastapi import APIRouter, Depends, HTTPException, Body
+from pydantic import BaseModel, create_model
+
+from FuzzAlgorithm.services.IfuzzAlgorithmService import IFuzzingService
+from FuzzAlgorithm.services.QlearningService import QlearningService
 
 router = APIRouter()
 
+generic_fields = {
+    'algorithm_type': (str, ...),
+    'base_url': (str, ...),
+    'function': (dict, ...)
+}
 
-class InitializationData(BaseModel):
-    base_url: str
-    function: dict
-    ids: dict
-    max_steps_per_episode: int
-    exploration_rate: float
-    num_episodes: int
+algorithm_fields = {
+    'Qlearning': {
+        'ids': (dict, ...),
+        'max_steps_per_episode': (int, ...),
+        'exploration_rate': (float, ...),
+        'num_episodes': (int, ...),
+    },
+    'default': {}
+}
 
 
-def getFuzzService():
-    return FuzzAlgorithmService()
+def create_algorithm_data(data: dict):
+    algorithm_type = data.get('algorithm_type', 'default')
+    fields = generic_fields.copy()
+    fields.update(algorithm_fields.get(algorithm_type, {}))
+    dynamicModel = create_model(f'{algorithm_type}DataModel', **fields)
+    return dynamicModel(**data)
+
+
+async def getFuzzService(data: dict) -> Tuple[IFuzzingService, BaseModel]:
+    data_model = create_algorithm_data(data)
+    algorithm_type = data_model.algorithm_type
+    if algorithm_type == "Qlearning":
+        return QlearningService(), data_model
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported algorithm type")
 
 
 @router.post("/execution")
-async def initialize(data: InitializationData, service=Depends(getFuzzService)):
-    result = service.fuzz(data)
-    if(result is None):
+async def initialize(data: dict = Body(...), service_data_model=Depends(getFuzzService)):
+    service, data_model = service_data_model
+    result = await service.fuzz(data_model)
+    if result is None:
         raise HTTPException(status_code=404, detail="Error initializing FuzzAlgorithm")
     return {
-        "message": "FuzzAlgorithm initialized"}
+        "message": "FuzzAlgorithm initialized",
+        "result": result
+    }

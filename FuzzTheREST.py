@@ -460,7 +460,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                 if count == 5:
                     print("stuck here")
                     self.function = fill_values(self.function, False, mutation_methods, True)
-                    count = 0
+
                 else:
                     self.function = fill_values(self.function, True, mutation_methods, True)
             else:
@@ -472,6 +472,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
 
             resp = self._execute_action(self.function)
+
 
         self.response = resp
         requests_log.append({"status_code": self.response.status_code, "message": self.response.content})

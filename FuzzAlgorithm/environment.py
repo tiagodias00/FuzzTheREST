@@ -20,7 +20,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.action_space: MultiDiscrete = MultiDiscrete([len(methods) for methods in mutation_methods])
         self.observation_space: Discrete = Discrete(5)  # Possible HTTP error codes.
         self.done = False
-        self.ids=  ids
+        self.ids = ids
 
     def step(self, action):
         # Execute the action on the API and get the response
