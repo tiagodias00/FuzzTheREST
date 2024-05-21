@@ -1,53 +1,48 @@
 from typing import List, Dict, Optional
 
-
-class Schema:
-    def __init__(self, type: str, properties: Optional[Dict[str, 'Property']] = None):
+class Attribute:
+    def __init__(self, type, name: str, is_id: bool = False, value=None):
         self.type = type
-        self.properties = properties
-
-
-class Property:
-    def __init__(self, name: str, type: str, is_id: bool = False):
         self.name = name
-        self.type = type
+        self.value = value
         self.is_id = is_id
 
 
-class Parameter:
-    def __init__(self, name: str, in_: str, description: str, required: bool, schema: Schema):
-        self.name = name
-        self.in_ = in_
-        self.description = description
-        self.required = required
-        self.schema = schema
+class Object:
+    def __init__(self, attributes: List[Attribute]):
+        self.attributes = attributes
 
+
+class Schema:
+    def __init__(self, schema_name: str, objects: List[Object]):
+        self.name = schema_name
+        self.objects = objects
+class Parameter:
+    def __init__(self, name: str, location: str, schema: Schema,sample):
+        self.name = name
+        self.in_ = location
+        self.schema_info = schema
+        self.sample = sample
 
 class RequestBody:
-    def __init__(self, content: Schema):
-        self.content = content
+    def __init__(self, schema: Schema,sample):
+        self.schema_info = schema
+        self.sample = sample
 
-
-class Paths:
-    def __init__(self, path: str, method: str, description: str, parameters: List[Parameter],
-                 request_body: Optional[RequestBody]):
-        self.path = path
+class HTTPRequest:
+    def __init__(self, url: str,content_type:str, method: str,parameters:List[Parameter], request_body:RequestBody=None):
+        self.url = url
+        self.content_type = content_type
         self.method = method
-        self.description = description
         self.parameters = parameters
         self.request_body = request_body
 
-
-class Component:
-    def __init__(self, schemas: Dict[str, Schema] = None, bodies: Dict[str, RequestBody] = None):
-        self.schemas = schemas
-        self.requestBodies = bodies
+class Format:
+    pass
 
 
-class OpenAPIDocument:
-    def __init__(self, name: str, BaseUrl, paths: Dict[str, Paths], components:Component = None,
-                 ):
-        self.name = name
-        self.baseUrl = BaseUrl
-        self.paths = paths
-        self.components = components
+class taxonomy:
+    def __init__(self, http_requests: dict,base_url, ids: Dict[str, List[str]]):
+        self.httpRequests = http_requests
+        self.base_url = base_url
+        self.ids = ids

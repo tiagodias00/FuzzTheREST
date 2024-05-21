@@ -1,28 +1,28 @@
 @startuml
 
 class HTTPRequest {
-    method: String
-    path: String
-    headers: Dictionary
-    body: Object
+    method
+    path
+    headers
+    body
 }
 
 class RequestResponse {
-    statusCode: int
-    headers: Dictionary
-    body: Object
+    statusCode
+    headers
+    body
 }
 
 class TestMetrics {
-totalRequests: int
-CodeCoverage: int
-UniqueCrashes: int
+totalRequests
+CodeCoverage
+UniqueCrashes
 }
 
 class OpenApiSpecifications {
-endpoints: List
-parameters: List
-schemas: Dictionary
+endpoints
+parameters
+schemas
 }
 
 

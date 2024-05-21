@@ -2,49 +2,71 @@ import copy
 
 import yaml
 
+from FuzzCore.Taxonomy import Schema, Object, Attribute, Parameter, RequestBody, HTTPRequest,taxonomy
 from utils import fill_values
 
 
-def create_json_body(object_data, existing_objects: dict):
-    """Converts components of the OpenAPI specifications to JSON objects.
+def create_Schema(name,object_data, existing_objects: dict):
+    """
+    Constructs a Schema instance from given object data.
 
     Args:
-        object_data (yaml): component to be built.
-        existing_objects (dict): components already built that may be referenced in other components.
+        object_data (dict): Raw schema data from OpenAPI specification.
+        existing_objects (dict): A dictionary of pre-existing schemas for resolving references.
 
     Returns:
-        JSON: The component in a JSON format.
+        Schema: The constructed Schema instance with populated Objects and Attributes.
     """
-    json_body = {}
-    property_dict = {}
-
     if 'properties' in object_data:
         properties = object_data['properties']
-
+        obj = Object(attributes=[])
         for prop_name, prop_data in properties.items():
             if 'type' in prop_data:
                 prop_type = prop_data['type']
                 if prop_type == 'array':
                     if 'type' in prop_data['items']:
-                        array_type = prop_data['items']['type']
-                        property_dict[prop_name] = [array_type]
+                        item_type = prop_data['items'].get('type')
+                        attribute = Attribute(type=[item_type], name=prop_name)
+                        obj.attributes.append(attribute)
                     elif '$ref' in prop_data['items']:
-                        array_type = prop_data['items']['$ref']
-                        property_dict[prop_name] = [existing_objects.get(prop_ref)]
+                        ref_schema_name = prop_data['items']['$ref'].split('/')[-1]
+                        referenced_schema = copy.deepcopy(existing_objects.get(ref_schema_name))
+                        attribute = Attribute(type=[referenced_schema], name=prop_name)
+                        obj.attributes.append(attribute)
                 else:
-                    property_dict[prop_name] = prop_type
+                    attribute = Attribute(type=prop_type, name=prop_name)
+                    obj.attributes.append(attribute)
             elif '$ref' in prop_data:
-                prop_ref = prop_data['$ref'].split('/')[-1]
-                property_dict[prop_name] = existing_objects.get(prop_ref)
-        return property_dict
+                ref_schema_name = prop_data['$ref'].split('/')[-1]
+                referenced_schema = copy.deepcopy(existing_objects.get(ref_schema_name))
+                attribute = Attribute(type=referenced_schema, name=prop_name)
+                obj.attributes.append(attribute)
+
+        return Schema(schema_name=name, objects=[obj])
     else:
         prop_data = object_data['content']['application/json']['schema']
         if '$ref' in prop_data:
-            return existing_objects.get(prop_data['$ref'].split('/')[-1])
+            ref_schema_name = prop_data['$ref'].split('/')[-1]
+            return copy.deepcopy(existing_objects.get(ref_schema_name))
+
         elif prop_data['type'] == "array":
-            return [existing_objects.get(prop_data['items']['$ref'].split('/')[-1])]
+            ref_schema_name = prop_data['items']['$ref'].split('/')[-1]
+            objects=copy.deepcopy(existing_objects.get(ref_schema_name).objects)
+            return Schema(schema_name=name, objects=[objects])
 
 
+def create_schemas_and_ids(spec):
+    schemas = {}
+    ids = {}
+
+    for object_name, object_data in spec['components']['schemas'].items():
+        schema = create_Schema(object_name,object_data, schemas)
+        schemas[object_name] = schema
+
+    for object_name, object_data in spec['components']['requestBodies'].items():
+        schema = create_Schema(object_name,object_data, schemas)
+        schemas[object_name] = schema
+    return schemas, ids
 def parse_OpenApi_file(file_path: str):
     with open(file_path, 'r') as file:
         spec = yaml.safe_load(file)
@@ -58,29 +80,19 @@ def parse_OpenApi_file(file_path: str):
     # ID dicts
     ids = {}
 
-    for object_name, object_data in spec['components']['schemas'].items():
-        parameter_schema = create_json_body(object_data, schemas)
-        schemas[object_name] = parameter_schema
-        if 'id' in parameter_schema:
-            ids[object_name] = []
-
-    for object_name, object_data in spec['components']['requestBodies'].items():
-        parameter_schema = create_json_body(object_data, schemas)
-        schemas[object_name] = parameter_schema
-        if 'id' in parameter_schema:
-            ids[object_name] = []
+    schemas,ids=create_schemas_and_ids(spec)
 
     # Extract the functions, input schemas, and output schemas
-    functions = {}
+    httpRequests = {}
     for path, path_item in spec['paths'].items():
         for method, operation in path_item.items():
-            function_name = operation.get('operationId')
+            request_name = operation.get('operationId')
             request_body = operation.get('requestBody')
             request_parameters = operation.get('parameters')
             input_schema = None
             parameter_name = None
             parameter_in = None
-            parameter_schema = None
+            parameter_schema_name = None
             parameter_type = None
             schema = None
 
@@ -92,17 +104,12 @@ def parse_OpenApi_file(file_path: str):
                     if request_parameters != None:
                         parameter_name = parameters['name']
                         parameter_in = parameters['in']
-                        parameter_schema = parameters['schema']['type']
+                        parameter_schema_name = parameters['schema']['type']
 
-                        if parameter_schema == 'array':
-                            parameter_schema = [parameters['schema']['items']['type']]
+                        if parameter_schema_name == 'array':
+                            parameter_schema_name = f"[{parameters['schema']['items']['type']}]"
 
-                    function_parameters.append({
-                        "name": parameter_name,
-                        "in": parameter_in,
-                        "schema": parameter_schema,
-                        "sample": copy.deepcopy(parameter_schema)
-                    })
+                    function_parameters.append(Parameter(parameter_name,parameter_in, parameter_schema_name, copy.deepcopy(parameter_schema_name)))
 
             # Extract input schema
             if (request_body != None and 'content' in request_body):
@@ -137,24 +144,17 @@ def parse_OpenApi_file(file_path: str):
                     schema = schemas.get(schema_name)
 
             if schema is None:
-                input_body = {"schema": [], "sample": None}
-
-            input_body = {"schema": schema, "sample": copy.deepcopy(schema), "schema_name": schema_name}
-
-            function = fill_values({
-                'path': path,
-                'content-type': input_applicaton,
-                'method': method.upper(),
-                'input_parameters': function_parameters,
-                'input_body': input_body
-            }, False, None, False, ids)
+                input_body = None
+            else:
+                input_body = RequestBody(schema, copy.deepcopy(schema))
+            http_request = HTTPRequest(path, input_applicaton, method, function_parameters, input_body)
+            function = fill_values(http_request, False, None, False, ids)
 
             # Store the information in the functions dictionary
-            functions[function_name] = function
-
+            httpRequests[request_name] = function
 
     return {
-        'functions': functions,
-        'base_url': base_url,
-        'ids': ids
+        "httpRequests": httpRequests,
+        "base_url": base_url,
+        "ids":ids
     }

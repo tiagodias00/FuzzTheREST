@@ -6,125 +6,156 @@ import sys
 
 from textblob import Word
 
+from FuzzCore.Taxonomy import Schema
 
-def fill_body_values(schema, old_sample, contains_previous, mutation_methods, schema_name, store_id,ids):
+
+def fill_body_values(schema, old_sample, contains_previous, mutation_methods, schema_name, store_id, ids):
     if schema is not None:
         sample = copy.deepcopy(schema)
         if contains_previous:
             sample = fill_previous_body(sample, old_sample)
 
-        for item in sample.items():
-            if type(item[1]) is list:
-                list_size = random.randint(0,100)
+        for item in sample.attributes:
+
+            if isinstance(item.type, list):
+                list_size = random.randint(0, 100)
                 values = []
 
-                if list_size <= len(item[1]):
-                    values = item[1][0:list_size]
+                if list_size <= len(item.type):
+                    values = item.type[0:list_size]
                 else:
-                    values = [schema[item[0]][0]] * list_size
-                    values[0:len(item[1])] = item[1]
+                    attr = search_attr(schema, item.name)
+                    values = [attr.type[0]] * list_size
+                    values[0:len(item.type)] = item.type
 
                 for i in range(list_size):
-                    if type(values[i]) is dict:
-                        if type(schema[item[0]]) is list:
-                            values[i] = fill_body_values(schema[item[0]][0], values[i], contains_previous, mutation_methods, item[0], store_id,ids)
+                    if type(values[i]) is Schema:
+                        attr = search_attr(sample, item.name)
+                        if type(attr.type) is list:
+                            values[i] = fill_body_values(attr.type[0].objects[0], values[i], contains_previous,
+                                                         mutation_methods, item.name, store_id, ids)
                         else:
-                            values[i] = fill_body_values(schema[item[0]], values[i], contains_previous, mutation_methods, item[0], store_id,ids)
+                            values[i] = fill_body_values(attr.type.objects[0], values[i], contains_previous,
+                                                         mutation_methods, item.name, store_id, ids)
 
                     else:
                         if type(values[i]) is str and values[i] in {"integer", "double", "float", "string", "boolean"}:
-                            values[i] = get_mutated_value(None, values[i], None, Word(schema_name.capitalize()).singularize(),ids)
+                            values[i] = get_mutated_value(None, values[i], None,
+                                                          Word(schema_name.capitalize()).singularize(), ids)
                         else:
-                            values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], Word(schema_name.capitalize()).singularize(),ids)
+                            values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])],
+                                                          Word(schema_name.capitalize()).singularize(), ids)
+                attrSample = search_attr(sample, item.name)
+                attrSample.value = values
 
-                sample[item[0]] = values
-
-                if item[0] == 'id' and store_id:
+                if item.name == 'id' and store_id:
                     for value in values:
                         if value not in ids[Word(schema_name.capitalize()).singularize()]:
                             ids[Word(schema_name.capitalize()).singularize()].append(value)
 
             else:
-                if type(item[1]) is dict:
-                        sample[item[0]] = fill_body_values(schema[item[0]], item[1], contains_previous, mutation_methods,item[0], store_id,ids)
-                else:
-                    if type(item[1]) is str and item[1] in {"integer", "double", "float", "string", "boolean"}:
-                        sample[item[0]] = get_mutated_value(None, item[1], None, Word(schema_name.capitalize()).singularize(),ids)
-                    else:
-                        sample[item[0]] = get_mutated_value(item[1], None,  mutation_methods[type(item[1])], Word(schema_name.capitalize()).singularize(),ids)
+                if isinstance(item.type, Schema):
+                    attrSample = search_attr(sample, item.name)
+                    attrSchema = search_attr(schema, item.name)
+                    result = copy.deepcopy(
+                        fill_body_values(attrSchema.type.objects[0], item.type, contains_previous, mutation_methods,
+                                         item.name, store_id, ids))
+                    attrSample.type.objects[0] = result
 
-                    if item[0] == 'id' and store_id:
-                        if sample[item[0]] not in ids[Word(schema_name.capitalize()).singularize()]:
-                            ids[Word(schema_name.capitalize()).singularize()].append(sample[item[0]])
+                else:
+                    if isinstance(item.type, str) and item.type in {"integer", "double", "float", "string", "boolean"}:
+                        attr = search_attr(sample, item.name)
+                        attr.value = get_mutated_value(None, item.type, None,
+                                                       Word(schema_name.capitalize()).singularize(), ids)
+                    else:
+                        attr = search_attr(sample, item.name)
+                        attr.value = get_mutated_value(item.type, None, mutation_methods[item.type],
+                                                       Word(schema_name.capitalize()).singularize(), ids)
+                    if item.name == 'id' and store_id:
+                        attr = search_attr(sample, item.name)
+                        if attr not in ids[Word(schema_name.capitalize()).singularize()]:
+                            ids[Word(schema_name.capitalize()).singularize()].append(copy.deepcopy(attr))
 
         return sample
 
+
+def search_attr(schema, name):
+    for attr in schema.attributes:
+        if attr.name == name:
+            return attr
+
+
 def fill_previous_body(schema, old_sample):
     sample = copy.deepcopy(schema)
-    for item in old_sample.items():
-        if type(item[1]) is list:
-            if len(item[1]) > 0:
-                if item[1][0] is dict:
+    for item in old_sample.attributes:
+        if isinstance(item.type, list):
+            if len(item.type) > 0:
+                if item.type[0] is dict:
                     #TODO Implement to when it is a dict inside a list
                     raise ValueError("Unsuported dict inside list verification")
                 else:
-                    sample[item[0]] = item[1]
+                    attr = search_attr(sample, item.name)
+                    attr.type = item.type
         else:
-            if type(item[1]) is dict:
-                sample[item[0]] = fill_previous_body(sample[item[0]], item[1])
+            attr = search_attr(sample, item.name)
+            if isinstance(item.type, Schema):
+                attr.type = fill_previous_body(attr.type.objects[0], item.type.objects[0])
             else:
-                sample[item[0]] = item[1]
-
+                attr.type = item.type
 
     return sample
 
-def fill_parameter_values(input_parameters, contains_previous, mutation_methods,ids):
+
+def fill_parameter_values(input_parameters, contains_previous, mutation_methods, ids):
     for parameter in input_parameters:
-        parameter_name = parameter['name'].lower()
+        parameter_name = parameter.name.lower()
         if 'id' in parameter_name:
             parameter_name = parameter_name.replace('id', '').capitalize()
-        if type(parameter['schema']) is list:
-            list_size = random.randint(1,100)
+        if type(parameter.schema_info) is list:
+            list_size = random.randint(1, 100)
             values = []
-            if contains_previous:
-                if list_size <= len(parameter['sample']):
-                    values = parameter['sample'][0:list_size]
-                else:
-                    values = [random_generation(type(parameter['sample'][0]))] * list_size
-                    values[0:len(parameter['sample'])] = parameter['sample']
-
-                for i in range(list_size):
-                    values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], parameter_name,ids)
-
+            if list_size <= len(parameter.sample):
+                values = parameter.sample[0:list_size]
             else:
-                for i in range(list_size):
-                    values.append(get_mutated_value(None, parameter['schema'][0], None, parameter_name,ids))
+                values = [random_generation(type(parameter.sample[0]))] * list_size
+                values[0:len(parameter.sample)] = parameter.sample
 
-            parameter["sample"] = values
+                for i in range(list_size):
+                    values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], parameter_name,
+                                                  ids)
+
 
         else:
             if contains_previous:
-                parameter['sample'] = get_mutated_value(parameter['sample'], parameter['schema'], mutation_methods[type(parameter['sample'])], parameter_name,ids)
+                parameter.sample = get_mutated_value(parameter.sample, parameter.schema_info,
+                                                     mutation_methods[type(parameter.sample)], parameter_name,
+                                                     ids)
             else:
-                parameter['sample'] = get_mutated_value(None, parameter['schema'], None, parameter_name,ids)
+                parameter.sample = get_mutated_value(None, parameter.schema_info, None, parameter_name, ids)
 
     return input_parameters
 
 
+def fill_values(function, contains_previous_values, mutation_methods, store_id, ids):
+    function.parameters = fill_parameter_values(function.parameters, contains_previous_values, mutation_methods, ids)
+    if function.request_body is not None:
+        test_for_list = function.request_body.schema_info.objects[0]
+        if type(test_for_list) is list:
+            list_size = random.randint(0, 100)
+            list_schema = test_for_list[0]
+            items = []
+            for i in range(list_size):
+                items.append(
+                    fill_body_values(list_schema, function.request_body.sample.objects[0], contains_previous_values,
+                                     mutation_methods, function.request_body.schema_info.name, store_id, ids))
 
-def fill_values(function, contains_previous_values, mutation_methods, store_id,ids):
-    function['input_parameters'] = fill_parameter_values(function['input_parameters'], contains_previous_values, mutation_methods,ids)
-
-    if type(function['input_body']['schema']) is list:
-        list_size = random.randint(0,100)
-        list_schema = function['input_body']['schema'][0]
-        items = []
-        for i in range(list_size):
-            items.append(fill_body_values(list_schema, function['input_body']['sample'], contains_previous_values, mutation_methods, function['input_body']['schema_name'], store_id,ids))
-
-        function['input_body']['sample'] = items
-    else:
-        function['input_body']['sample'] = fill_body_values(function['input_body']['schema'], function['input_body']['sample'], contains_previous_values, mutation_methods, function['input_body']['schema_name'], store_id,ids)
+            function.request_body.sample.objects = items
+        else:
+            function.request_body.sample.objects[0] = fill_body_values(function.request_body.schema_info.objects[0],
+                                                                       function.request_body.sample.objects[0],
+                                                                       contains_previous_values, mutation_methods,
+                                                                       function.request_body.schema_info.name, store_id,
+                                                                       ids)
 
     return function
 
@@ -149,6 +180,7 @@ def bit_flips(data):
     else:
         raise ValueError("Unsupported data type for bit flips")
 
+
 # Byte Shuffling: Shuffles the order of the bytes in the input data.
 def byte_shuffling(data):
     if isinstance(data, str):
@@ -164,6 +196,7 @@ def byte_shuffling(data):
         return data
     else:
         raise ValueError("Unsupported data type for byte shuffling")
+
 
 # Byte Injection/Deletion: Adds or removes random bytes, causing structural changes to the input data.
 def byte_injection(data):
@@ -182,6 +215,7 @@ def byte_injection(data):
     else:
         raise ValueError("Unsupported data type for byte injection/deletion")
 
+
 def byte_deletion(data):
     if isinstance(data, str):
         code_points = list(data)
@@ -197,6 +231,7 @@ def byte_deletion(data):
         return bytes(mutated_data)
     else:
         raise ValueError("Unsupported data type for byte injection/deletion")
+
 
 # Bytes Substitution: Randomly replaces bytes with others.
 def bytes_substitution(data):
@@ -216,22 +251,24 @@ def bytes_substitution(data):
     else:
         raise ValueError("Unsupported data type for bytes substitution")
 
+
 # Truncation: Shortens the input data by removing trailing bytes.
 def truncation(data):
     if isinstance(data, str):
         if len(data) > 1:
-            truncation_length = random.randint(0, len(data)-1)
+            truncation_length = random.randint(0, len(data) - 1)
             return data[:-truncation_length]
         else:
             return data
     elif isinstance(data, bytes):
         if len(data) > 1:
-            truncation_length = random.randint(0, len(data)-1)
+            truncation_length = random.randint(0, len(data) - 1)
             return data[:-truncation_length]
         else:
             return data
     else:
         raise ValueError("Unsupported data type for truncation")
+
 
 # Dictionary Fuzzy: only works for integers
 def dictionary_fuzzy(schema_name, ids):
@@ -240,6 +277,7 @@ def dictionary_fuzzy(schema_name, ids):
             value = random.choice(ids[schema_name])
             return value
     return None
+
 
 def arithmetic_addition(data):
     if isinstance(data, float):
@@ -251,6 +289,7 @@ def arithmetic_addition(data):
         return new_value
     else:
         raise ValueError("Unsupported data type for arithmetic operations")
+
 
 def arithmetic_subtraction(data):
     if isinstance(data, float):
@@ -265,6 +304,7 @@ def arithmetic_subtraction(data):
     else:
         raise ValueError("Unsupported data type for arithmetic operations")
 
+
 def arithmetic_multiplication(data):
     if isinstance(data, float):
         return data * random.uniform(sys.float_info.min, sys.float_info.max)
@@ -278,6 +318,7 @@ def arithmetic_multiplication(data):
     else:
         raise ValueError("Unsupported data type for arithmetic operations")
 
+
 def arithmetic_division(data):
     if isinstance(data, float):
         return data / random.uniform(sys.float_info.min, sys.float_info.max)
@@ -285,6 +326,7 @@ def arithmetic_division(data):
         return data // random.randrange(-2147483648, 2147483647)
     else:
         raise ValueError("Unsupported data type for arithmetic operations")
+
 
 # Random Generation: Randomly generates input of a certain type.
 def random_generation(data_type):
@@ -302,6 +344,7 @@ def random_generation(data_type):
         return bytes(random.randint(0, 255) for _ in range(size))
     else:
         raise ValueError("Unsupported data type for random generation")
+
 
 # %%
 # Method to Convert to Binary
@@ -321,6 +364,7 @@ def to_binary(data):
 
     return binary_data
 
+
 # Method to Convert From Binary to original data type.
 def from_binary(binary_data, data_type):
     if data_type == str:
@@ -338,43 +382,51 @@ def from_binary(binary_data, data_type):
 
     return output_value
 
-# %%
-def get_mutated_value(old_value, datatype, method, schema_name,ids):
-        if old_value is None:
-            if datatype == 'integer':
-                return random_generation(int)
-            elif datatype == 'float' or datatype == 'double':
-                return random_generation(float)
-            elif datatype == 'boolean':
-                return random_generation(bool)
-            elif datatype == 'string':
-                return random_generation(str)
-            else:
-                random_generation(bytes)
-        else:
-            datatype = type(old_value)
-            if method is random_generation:
-                return random_generation(datatype)
-            elif method is dictionary_fuzzy:
-                new_value = dictionary_fuzzy(schema_name, ids)
-                if new_value is None:
-                    return old_value
-                else:
-                    return new_value
-            if datatype is int or datatype is float:
-                if method is arithmetic_division or method is arithmetic_addition or method is arithmetic_multiplication or method is arithmetic_subtraction:
-                    return method(old_value)
-                else:
-                    new_value_bin = to_binary(old_value)
-                    return from_binary(method(new_value_bin), datatype)
-            else:
-                return method(old_value)
 
-int_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation, dictionary_fuzzy]
-float_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation]
+# %%
+def get_mutated_value(old_value, datatype, method, schema_name, ids):
+    if old_value is None:
+        if datatype == 'integer':
+            return random_generation(int)
+        elif datatype == 'float' or datatype == 'double':
+            return random_generation(float)
+        elif datatype == 'boolean':
+            return random_generation(bool)
+        elif datatype == 'string':
+            return random_generation(str)
+        else:
+            random_generation(bytes)
+    else:
+        datatype = type(old_value)
+        if method is random_generation:
+            return random_generation(datatype)
+        elif method is dictionary_fuzzy:
+            new_value = dictionary_fuzzy(schema_name, ids)
+            if new_value is None:
+                return old_value
+            else:
+                return new_value
+        if datatype is int or datatype is float:
+            if method is arithmetic_division or method is arithmetic_addition or method is arithmetic_multiplication or method is arithmetic_subtraction:
+                return method(old_value)
+            else:
+                new_value_bin = to_binary(old_value)
+                return from_binary(method(new_value_bin), datatype)
+        else:
+            return method(old_value)
+
+
+int_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction,
+                        arithmetic_multiplication, arithmetic_division, random_generation, dictionary_fuzzy]
+float_mutation_methods = [bit_flips, byte_shuffling, bytes_substitution, arithmetic_addition, arithmetic_subtraction,
+                          arithmetic_multiplication, arithmetic_division, random_generation]
 bool_mutation_methods = [bit_flips, byte_shuffling, random_generation]
-byte_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation, arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division, random_generation]
-str_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation, random_generation]
+byte_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation,
+                         arithmetic_addition, arithmetic_subtraction, arithmetic_multiplication, arithmetic_division,
+                         random_generation]
+str_mutation_methods = [bit_flips, byte_shuffling, byte_injection, byte_deletion, bytes_substitution, truncation,
+                        random_generation]
 
 # Combine all mutation methods into a single list
-mutation_methods = [int_mutation_methods, float_mutation_methods, bool_mutation_methods, byte_mutation_methods, str_mutation_methods]
+mutation_methods = [int_mutation_methods, float_mutation_methods, bool_mutation_methods, byte_mutation_methods,
+                    str_mutation_methods]
