@@ -2,7 +2,7 @@ import copy
 
 import yaml
 
-from FuzzCore.Taxonomy import Schema, Object, Attribute, Parameter, RequestBody, HTTPRequest,taxonomy
+from FuzzCore.Taxonomy import Schema, Object, Attribute, Parameter, RequestBody, HTTPRequest
 from utils import fill_values
 
 
@@ -67,6 +67,7 @@ def create_schemas_and_ids(spec):
         schema = create_Schema(object_name,object_data, schemas)
         schemas[object_name] = schema
     return schemas, ids
+
 def parse_OpenApi_file(file_path: str):
     with open(file_path, 'r') as file:
         spec = yaml.safe_load(file)
@@ -82,7 +83,7 @@ def parse_OpenApi_file(file_path: str):
 
     schemas,ids=create_schemas_and_ids(spec)
 
-    # Extract the functions, input schemas, and output schemas
+
     httpRequests = {}
     for path, path_item in spec['paths'].items():
         for method, operation in path_item.items():
@@ -147,7 +148,7 @@ def parse_OpenApi_file(file_path: str):
                 input_body = None
             else:
                 input_body = RequestBody(schema, copy.deepcopy(schema))
-            http_request = HTTPRequest(path, input_applicaton, method, function_parameters, input_body)
+            http_request = HTTPRequest(path, input_applicaton, method.upper(), function_parameters, input_body)
             function = fill_values(http_request, False, None, False, ids)
 
             # Store the information in the functions dictionary

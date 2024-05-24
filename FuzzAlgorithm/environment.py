@@ -35,7 +35,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         count = -1
         while type(resp) is str:
             count = count + 1
-            if self.function['method'] == 'POST':
+            if self.function.method == 'POST':
                 if count == 5:
                     print("stuck here")
                     self.function = fill_values(self.function, False, mutation_methods, True,self.ids)
@@ -69,52 +69,56 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
     def _execute_action(self, function):
         parameters = {}
-        headers = {'Content-type': function['content-type'], 'accept': '*/*'}
-        path: str = copy.deepcopy(function['path'])
-        if len(function['input_parameters']) > 0:
-            for item in function['input_parameters']:
-                if item['name'] in path:
-                    path = path.replace('{' + item['name'] + '}', str(item['sample']))
+        headers = {'Content-type': function.content_type, 'accept': '*/*'}
+
+        path: str = copy.deepcopy(function.url)
+        if len(function.parameters) > 0:
+            for item in function.parameters:
+                if item.name in path:
+                    path = path.replace('{' + item.name + '}', str(item.sample))
                 else:
-                    parameters[item['name']] = str(item['sample'])
+                    parameters[item.name] = str(item.sample)
         try:
-            if function['method'] == 'GET':
+            if function.method == 'GET':
                 if len(parameters) > 0:
                     return requests.get(self.base_url + path, params=parameters, timeout=40)
                 else:
                     return requests.get(self.base_url + path, timeout=40)
 
-            elif function['method'] == 'PUT':
+            elif function.method == 'PUT':
+                sample=function.request_body.to_dict_request()
                 if len(parameters) > 0:
-                    return requests.put(self.base_url + path, json=function['input_body']['sample'], headers=headers,
+                    return requests.put(self.base_url + path, json=sample, headers=headers,
                                         params=parameters, timeout=40)
                 else:
-                    return requests.put(self.base_url + path, json=function['input_body']['sample'], headers=headers,
+                    return requests.put(self.base_url + path, json=sample, headers=headers,
                                         timeout=40)
 
-            elif function['method'] == 'DELETE':
+            elif function.method == 'DELETE':
+                sample = function.request_body.to_dict_request()
                 if len(parameters) > 0:
-                    return requests.delete(self.base_url + path, json=function['input_body']['sample'], headers=headers,
+                    return requests.delete(self.base_url + path, json=sample, headers=headers,
                                            params=parameters, timeout=40)
                 else:
-                    return requests.delete(self.base_url + path, json=function['input_body']['sample'], headers=headers,
+                    return requests.delete(self.base_url + path, json=sample, headers=headers,
                                            timeout=40)
 
-            elif function['method'] == 'POST':
-                if function['content-type'] == "multipart/form-data":
-                    files = {'file': function['input_body']['sample'].pop('file')}
+            elif function.method == 'POST':
+                sample = function.request_body.to_dict_request()
+                if function.content_type == "multipart/form-data":
+                    files = {'file':sample.pop('file')}
                     if len(parameters) > 0:
-                        return requests.post(self.base_url + path, json=function['input_body']['sample'], files=files,
+                        return requests.post(self.base_url + path, json=sample, files=files,
                                              params=parameters, timeout=40)
                     else:
-                        return requests.post(self.base_url + path, json=function['input_body']['sample'], files=files,
+                        return requests.post(self.base_url + path, json=sample, files=files,
                                              timeout=40)
                 else:
                     if len(parameters) > 0:
-                        return requests.post(self.base_url + path, json=function['input_body']['sample'],
+                        return requests.post(self.base_url + path, json=sample,
                                              headers=headers, params=parameters, timeout=40)
                     else:
-                        return requests.post(self.base_url + path, json=function['input_body']['sample'],
+                        return requests.post(self.base_url + path, json=sample,
                                              headers=headers, timeout=40)
         except:
             return "error"

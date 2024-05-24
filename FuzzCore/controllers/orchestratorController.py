@@ -35,9 +35,9 @@ async def StartFuzzing(request: BaseAlgorithm):
 
     openApi_data = parse_OpenApi_file(request.file_path)
 
-    possible_scenarios_options = list(openApi_data.httpRequests.keys())
+    possible_scenarios_options = list(openApi_data['httpRequests'].keys())
 
-    initiate_fuzzing(params, openApi_data['base_url'], openApi_data['functions'],
+    initiate_fuzzing(params, openApi_data['base_url'], openApi_data['httpRequests'],
                      openApi_data['ids'], possible_scenarios_options)
 
     return

@@ -32,10 +32,10 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                     if type(values[i]) is Schema:
                         attr = search_attr(sample, item.name)
                         if type(attr.type) is list:
-                            values[i] = fill_body_values(attr.type[0].objects[0], values[i], contains_previous,
+                            values[i] = fill_body_values(attr.type[0].objects[0], values[i].objects[0], contains_previous,
                                                          mutation_methods, item.name, store_id, ids)
                         else:
-                            values[i] = fill_body_values(attr.type.objects[0], values[i], contains_previous,
+                            values[i] = fill_body_values(attr.type.objects[0], values[i].objects[0], contains_previous,
                                                          mutation_methods, item.name, store_id, ids)
 
                     else:
@@ -57,8 +57,9 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                 if isinstance(item.type, Schema):
                     attrSample = search_attr(sample, item.name)
                     attrSchema = search_attr(schema, item.name)
+
                     result = copy.deepcopy(
-                        fill_body_values(attrSchema.type.objects[0], item.type, contains_previous, mutation_methods,
+                        fill_body_values(attrSchema.type.objects[0], item.type.objects[0], contains_previous, mutation_methods,
                                          item.name, store_id, ids))
                     attrSample.type.objects[0] = result
 
@@ -69,6 +70,7 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                                                        Word(schema_name.capitalize()).singularize(), ids)
                     else:
                         attr = search_attr(sample, item.name)
+
                         attr.value = get_mutated_value(item.type, None, mutation_methods[item.type],
                                                        Word(schema_name.capitalize()).singularize(), ids)
                     if item.name == 'id' and store_id:
@@ -99,7 +101,7 @@ def fill_previous_body(schema, old_sample):
         else:
             attr = search_attr(sample, item.name)
             if isinstance(item.type, Schema):
-                attr.type = fill_previous_body(attr.type.objects[0], item.type.objects[0])
+                attr.type.objects[0] = fill_previous_body(attr.type.objects[0], item.type.objects[0])
             else:
                 attr.type = item.type
 
