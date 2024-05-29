@@ -1,12 +1,18 @@
 import copy
+import ftplib
+import os
+import sys
+from io import BytesIO
+from urllib.parse import urlparse
 
 import yaml
+from dotenv import load_dotenv
 
 from FuzzCore.Taxonomy import Schema, Object, Attribute, Parameter, RequestBody, HTTPRequest
 from utils import fill_values
 
 
-def create_Schema(name,object_data, existing_objects: dict):
+def create_Schema(name, object_data, existing_objects: dict,ids_fields):
     """
     Constructs a Schema instance from given object data.
 
@@ -27,19 +33,27 @@ def create_Schema(name,object_data, existing_objects: dict):
                     if 'type' in prop_data['items']:
                         item_type = prop_data['items'].get('type')
                         attribute = Attribute(type=[item_type], name=prop_name)
+                        if name in ids_fields and ids_fields[name] == prop_name:
+                            attribute.is_id = True
                         obj.attributes.append(attribute)
                     elif '$ref' in prop_data['items']:
                         ref_schema_name = prop_data['items']['$ref'].split('/')[-1]
                         referenced_schema = copy.deepcopy(existing_objects.get(ref_schema_name))
                         attribute = Attribute(type=[referenced_schema], name=prop_name)
+                        if name in ids_fields and ids_fields[name] == prop_name:
+                            attribute.is_id = True
                         obj.attributes.append(attribute)
                 else:
                     attribute = Attribute(type=prop_type, name=prop_name)
+                    if name in ids_fields and ids_fields[name] == prop_name:
+                        attribute.is_id = True
                     obj.attributes.append(attribute)
             elif '$ref' in prop_data:
                 ref_schema_name = prop_data['$ref'].split('/')[-1]
                 referenced_schema = copy.deepcopy(existing_objects.get(ref_schema_name))
                 attribute = Attribute(type=referenced_schema, name=prop_name)
+                if name in ids_fields and ids_fields[name] == prop_name:
+                    attribute.is_id = True
                 obj.attributes.append(attribute)
 
         return Schema(schema_name=name, objects=[obj])
@@ -51,27 +65,31 @@ def create_Schema(name,object_data, existing_objects: dict):
 
         elif prop_data['type'] == "array":
             ref_schema_name = prop_data['items']['$ref'].split('/')[-1]
-            objects=copy.deepcopy(existing_objects.get(ref_schema_name).objects)
+            objects = copy.deepcopy(existing_objects.get(ref_schema_name).objects)
             return Schema(schema_name=name, objects=[objects])
 
 
-def create_schemas_and_ids(spec):
+def create_schemas_and_ids(spec, ids_fields):
     schemas = {}
     ids = {}
 
     for object_name, object_data in spec['components']['schemas'].items():
-        schema = create_Schema(object_name,object_data, schemas)
+        schema = create_Schema(object_name, object_data, schemas,ids_fields)
         schemas[object_name] = schema
+        if object_name in ids_fields:
+            ids[object_name] =[]
 
     for object_name, object_data in spec['components']['requestBodies'].items():
-        schema = create_Schema(object_name,object_data, schemas)
+        schema = create_Schema(object_name, object_data, schemas,ids_fields)
         schemas[object_name] = schema
+        if object_name in ids_fields:
+            ids[object_name] = []
+
     return schemas, ids
 
-def parse_OpenApi_file(file_path: str):
-    with open(file_path, 'r') as file:
-        spec = yaml.safe_load(file)
 
+def parse_OpenApi_file(file_path: str,ids_fields):
+    spec = load_data_from_path(file_path)
     # Extract the base connection string (servers -> url)
     base_url = spec['servers'][0]['url']
 
@@ -81,8 +99,7 @@ def parse_OpenApi_file(file_path: str):
     # ID dicts
     ids = {}
 
-    schemas,ids=create_schemas_and_ids(spec)
-
+    schemas, ids = create_schemas_and_ids(spec, ids_fields)
 
     httpRequests = {}
     for path, path_item in spec['paths'].items():
@@ -110,7 +127,8 @@ def parse_OpenApi_file(file_path: str):
                         if parameter_schema_name == 'array':
                             parameter_schema_name = f"[{parameters['schema']['items']['type']}]"
 
-                    function_parameters.append(Parameter(parameter_name,parameter_in, parameter_schema_name, copy.deepcopy(parameter_schema_name)))
+                    function_parameters.append(Parameter(parameter_name, parameter_in, parameter_schema_name,
+                                                         copy.deepcopy(parameter_schema_name)))
 
             # Extract input schema
             if (request_body != None and 'content' in request_body):
@@ -157,5 +175,61 @@ def parse_OpenApi_file(file_path: str):
     return {
         "httpRequests": httpRequests,
         "base_url": base_url,
-        "ids":ids
+        "ids": ids
     }
+
+
+def is_ftp_path(path):
+    return path.startswith('/srv/ftp/')
+
+
+def load_data_from_path(path):
+    if is_ftp_path(path):
+        data = load_data_from_ftp(path)
+
+    else:
+        data = load_data_from_local(path)
+
+    return data
+
+
+def load_data_from_ftp(ftp_path):
+    load_dotenv()
+    ftp_host = os.getenv('FTP_HOST')
+    ftp_user = os.getenv('FTP_USER')
+    ftp_pass = os.getenv('FTP_PASSWORD')
+    print(ftp_user, ftp_pass, ftp_host)
+    ftp = connect_ftp(ftp_host)
+    ftp.login(ftp_user, ftp_pass)
+    ftp.set_pasv(True)
+
+    buffer = BytesIO()
+    ftp.retrbinary('RETR ' + ftp_path, buffer.write)
+    buffer.seek(0)
+
+    spec = yaml.safe_load(buffer)
+
+    try:
+        ftp.delete(ftp_path)
+        print(f"Successfully deleted {ftp_path} from the FTP server.")
+    except ftplib.error_perm as e:
+        print(f"Failed to delete {ftp_path}: {e}")
+
+    ftp.quit()
+
+    return spec
+
+
+def load_data_from_local(file_path):
+    with open(file_path, 'r') as file:
+        spec = yaml.safe_load(file)
+    return spec
+
+def connect_ftp(ftp_host, ftp_port=21):
+    ftp = ftplib.FTP()
+    try:
+        ftp.connect(ftp_host, ftp_port)
+        return ftp
+    except Exception as e:
+        print(f"Failed to connect to FTP server: {e}")
+        sys.exit(1)

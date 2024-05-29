@@ -1,10 +1,10 @@
-from typing import Tuple
+from typing import Tuple, List
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel, create_model
 
 from FuzzAlgorithm.services.IfuzzAlgorithmService import IFuzzingService
-from FuzzAlgorithm.services.ParsingService import parse_http_request
+from FuzzAlgorithm.services.ParsingService import parse_http_request, parse_http_requests
 from FuzzAlgorithm.services.QlearningService import QlearningService
 
 router = APIRouter()
@@ -13,7 +13,8 @@ generic_fields = {
     'algorithm_type': (str, ...),
     'base_url': (str, ...),
     'function': (dict, ...),
-    'ids': (dict, ...)
+    'ids': (dict, ...),
+    'scenarios': (List[List[str]],...)
 }
 
 algorithm_fields = {
@@ -46,7 +47,7 @@ async def getFuzzService(data: dict) -> Tuple[IFuzzingService, BaseModel]:
 @router.post("/execution")
 async def initialize(data: dict = Body(...), service_data_model=Depends(getFuzzService)):
     service, data_model = service_data_model
-    data_model.function = parse_http_request(data['function'],data['url'])
+    data_model.function = parse_http_requests(data['function'])
     result = await service.fuzz(data_model)
     if result is None:
         raise HTTPException(status_code=404, detail="Error initializing FuzzAlgorithm")

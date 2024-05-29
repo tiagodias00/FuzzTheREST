@@ -18,11 +18,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-dotenv_path = 'C:\\Users\\franc\\Documents\\FuzzTheREST\\env.env'
-load_dotenv(dotenv_path=dotenv_path)
 
-redisDB = redis.Redis(host=os.getenv('REDIS_HOST'), port=int(os.getenv('REDIS_PORT')),
-                      password=os.getenv('REDIS_PASSWORD'), db=0, decode_responses=False)
+load_dotenv()
+
+
 
 app.include_router(fuzzingController.router)
 

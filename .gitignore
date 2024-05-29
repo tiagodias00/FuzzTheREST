@@ -163,4 +163,4 @@ cython_debug/
 .bak
 *.bak_000f
 *.bak*
-env.env
+.env

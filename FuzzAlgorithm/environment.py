@@ -7,7 +7,7 @@ from gym.spaces import MultiDiscrete, Discrete
 
 from utils import fill_values
 
-requests_log = []
+
 
 
 class APIFuzzyTestingEnvironment(gym.Env):
@@ -22,7 +22,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.done = False
         self.ids = ids
 
-    def step(self, action):
+    def step(self, action,requests_log):
         # Execute the action on the API and get the response
         mutation_methods = {}
         mutation_methods[int] = self.mutation_methods[0][action[0]]
@@ -33,6 +33,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
         resp = ""
         count = -1
+
         while type(resp) is str:
             count = count + 1
             if self.function.method == 'POST':
@@ -54,7 +55,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.response = resp
         requests_log.append({"status_code": self.response.status_code, "message": self.response.content})
 
-        self._update_environment_state()
+        self._update_environment_state(requests_log)
 
         # Calculate the reward based on the response
         reward = self._calculate_reward()
@@ -70,6 +71,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
     def _execute_action(self, function):
         parameters = {}
         headers = {'Content-type': function.content_type, 'accept': '*/*'}
+
 
         path: str = copy.deepcopy(function.url)
         if len(function.parameters) > 0:
@@ -95,7 +97,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                                         timeout=40)
 
             elif function.method == 'DELETE':
-                sample = function.request_body.to_dict_request()
+                sample = function.request_done.to_dict_request() if function.request_body else None
                 if len(parameters) > 0:
                     return requests.delete(self.base_url + path, json=sample, headers=headers,
                                            params=parameters, timeout=40)
@@ -140,7 +142,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
         return 0
 
-    def _update_environment_state(self):
+    def _update_environment_state(self,requests_log):
         # Implement any necessary state updates based on the API response
         # For example, update the state with new information after each request
         # Change the state

@@ -1,8 +1,72 @@
-from typing import Dict
+from pydantic import BaseModel, HttpUrl,field_validator, Field, Extra
+from typing import List, Dict, Optional, Any
+from FuzzCore.Taxonomy import HTTPRequest, Object, Schema
 
-from FuzzCore.Taxonomy import HTTPRequest, Object
-from FuzzCore.controllers.openAPIController import SchemaModel, ObjectModel, HTTPRequestModel, ParameterModel, \
-    RequestBodyModel, AttributeModel
+
+class AttributeModel(BaseModel):
+    type: Any
+    name: str
+    is_id: bool
+    value: Optional[Any] = None
+
+    @field_validator('type')
+    def validate_type(cls, v):
+        if isinstance(v, Schema):
+            return convert_schema(v)
+        elif isinstance(v, list) and all(isinstance(item, Schema) for item in v):
+            return [convert_schema(item) for item in v]
+        return v
+
+    @field_validator('value')
+    def handle_complex_values(cls, v):
+        return convert_attribute_value(v)
+
+
+class ObjectModel(BaseModel):
+    attributes: List[AttributeModel]
+
+
+class SchemaModel(BaseModel):
+    name: str
+    objects: List[ObjectModel]
+
+
+class ParameterModel(BaseModel):
+    name: str
+    location: str
+    schema_info: str
+    sample: Any
+
+
+class RequestBodyModel(BaseModel):
+    schema_info: SchemaModel
+    sample: SchemaModel
+
+
+class HTTPRequestModel(BaseModel):
+    content_type: Optional[str] = None
+    method: str
+    parameters: List[ParameterModel]
+    request_body: Optional[RequestBodyModel] = None
+    url: str
+
+
+class TaxonomyModel(BaseModel):
+    httpRequests: Dict[str, HTTPRequestModel]
+    base_url: HttpUrl
+    ids: Dict[str, List[str]]
+
+
+class BasePayload(BaseModel):
+    algorithm_type: str
+    base_url: str
+    function: Dict[str, HTTPRequestModel]
+    ids: Dict
+    scenarios: List
+    additional_params: Dict[str, Any] = Field(default_factory=dict)
+
+    class Config:
+        extra = Extra.allow
 
 
 def convert_http_requests(http_requests: Dict[str, HTTPRequest]) -> Dict[str, HTTPRequestModel]:
@@ -31,8 +95,8 @@ def convert_http_requests(http_requests: Dict[str, HTTPRequest]) -> Dict[str, HT
 
     return model_dict
 
-def convert_schema(taxonomy_schema) -> SchemaModel:
 
+def convert_schema(taxonomy_schema) -> SchemaModel:
     all_object_models = []
     for entry in taxonomy_schema.objects:
         if isinstance(entry, Object):
@@ -51,20 +115,20 @@ def convert_schema(taxonomy_schema) -> SchemaModel:
             ])
             all_object_models.append(object_model)
 
-
     return SchemaModel(
         name=taxonomy_schema.name,
         objects=all_object_models
     )
 
-def convert_attribute_value(value):
 
+def convert_attribute_value(value):
     if isinstance(value, Object):
         return convert_object(value)
     elif isinstance(value, list):
         return [convert_attribute_value(item) for item in value]
     else:
         return value
+
 
 def convert_object(taxonomy_object):
     return ObjectModel(attributes=[

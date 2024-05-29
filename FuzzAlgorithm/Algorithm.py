@@ -51,7 +51,7 @@ class QLearningAgent:
         q_table[state, action] = q_table[state, action] * (1 - self.learning_rate) + \
                                  self.learning_rate * (reward + self.discount_factor * np.max(q_table[new_state, :]))
 
-    def train(self, num_episodes):
+    def train(self, num_episodes,request_logs):
         self.q_value_convergence = {
             'int': [],
             'float': [],
@@ -72,7 +72,8 @@ class QLearningAgent:
             for step in range(self.max_steps_per_episode):
                 action = self.choose_action(state, self.int_q_table, self.float_q_table, self.bool_q_table,
                                             self.byte_q_table, self.string_q_table)
-                new_state, reward, done = self.env.step(action)
+                new_state, reward, done = self.env.step(action, request_logs)
+
                 self.update_q_table(state, action[0], reward, new_state, self.int_q_table)
                 self.update_q_table(state, action[1], reward, new_state, self.float_q_table)
                 self.update_q_table(state, action[2], reward, new_state, self.bool_q_table)
@@ -197,7 +198,7 @@ class QLearningAgent:
         plt.savefig(base_path + "state_visits.png", bbox_inches='tight')
         plt.close()
 
-    def test(self):
+    def test(self,request_logs):
         for episode in range(5):
             state = self.env.reset()
             done = False
@@ -214,7 +215,7 @@ class QLearningAgent:
                 action.append(np.argmax(self.bool_q_table[state, :]))
                 action.append(np.argmax(self.byte_q_table[state, :]))
                 action.append(np.argmax(self.string_q_table[state, :]))
-                new_state, reward, done = self.env.step(action)
+                new_state, reward, done = self.env.step(action,request_logs)
 
                 if done:
                     self.env.render()
@@ -228,3 +229,27 @@ class QLearningAgent:
                     # time.sleep(3)
 
                 state = new_state
+
+def write_agent_report(agent,requests_log,ids):
+        requests_log_decoded = []
+        for request in requests_log:
+            decoded_request = {}
+            for key, value in request.items():
+                if isinstance(value, bytes):
+                    decoded_request[key] = value.decode('utf-8')
+                else:
+                    decoded_request[key] = value
+            requests_log_decoded.append(decoded_request)
+
+
+        return  {
+            "ids": ids,
+            "requests_log": requests_log_decoded,
+            "q_tables": {
+                "int_table": str(agent.int_q_table),
+                "float_table": str(agent.float_q_table),
+                "bool_table": str(agent.bool_q_table),
+                "string_table": str(agent.string_q_table),
+                "byte_table": str(agent.byte_q_table)
+            }
+        }

@@ -1,3 +1,6 @@
+import json
+from typing import List, Dict, Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Extra
 
@@ -10,6 +13,8 @@ router = APIRouter()
 class BaseAlgorithm(BaseModel):
     file_path: str
     algorithm_type: str
+    ids: Any
+    scenarios: Any
 
     class Config:
         extra = Extra.allow
@@ -32,12 +37,13 @@ def create_algorithm_params(**kwargs):
 @router.post('/fuzz')
 async def StartFuzzing(request: BaseAlgorithm):
     params = create_algorithm_params(**request.model_dump())
+    params.ids = json.loads(params.ids)
+    openApi_data = parse_OpenApi_file(request.file_path,params.ids)
 
-    openApi_data = parse_OpenApi_file(request.file_path)
+    params.scenarios=json.loads(params.scenarios)
 
-    possible_scenarios_options = list(openApi_data['httpRequests'].keys())
 
     initiate_fuzzing(params, openApi_data['base_url'], openApi_data['httpRequests'],
-                     openApi_data['ids'], possible_scenarios_options)
+                     openApi_data['ids'], params.scenarios)
 
     return

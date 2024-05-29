@@ -6,6 +6,7 @@ import sys
 
 from textblob import Word
 
+import FuzzCore.Taxonomy
 from FuzzCore.Taxonomy import Schema
 
 
@@ -48,7 +49,7 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                 attrSample = search_attr(sample, item.name)
                 attrSample.value = values
 
-                if item.name == 'id' and store_id:
+                if item.is_id and store_id:
                     for value in values:
                         if value not in ids[Word(schema_name.capitalize()).singularize()]:
                             ids[Word(schema_name.capitalize()).singularize()].append(value)
@@ -113,23 +114,34 @@ def fill_parameter_values(input_parameters, contains_previous, mutation_methods,
         parameter_name = parameter.name.lower()
         if 'id' in parameter_name:
             parameter_name = parameter_name.replace('id', '').capitalize()
-        if type(parameter.schema_info) is list:
+
+        if parameter.schema_info.startswith('['):
             list_size = random.randint(1, 100)
             values = []
-            if list_size <= len(parameter.sample):
-                values = parameter.sample[0:list_size]
+            if(contains_previous):
+                if list_size <= len(parameter.sample):
+                    values = parameter.sample[0:list_size]
+                else:
+                    values = [random_generation(type(parameter.sample[0]))] * list_size
+                    values[0:len(parameter.sample)] = parameter.sample
+
+                    for i in range(list_size):
+                        values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], parameter_name,
+                                                      ids)
             else:
-                values = [random_generation(type(parameter.sample[0]))] * list_size
-                values[0:len(parameter.sample)] = parameter.sample
-
                 for i in range(list_size):
-                    values[i] = get_mutated_value(values[i], None, mutation_methods[type(values[i])], parameter_name,
-                                                  ids)
-
-
+                    values.append(get_mutated_value(None, parameter.schema_info[1:-1], None, parameter_name,ids))
+            parameter.sample=values
         else:
             if contains_previous:
-                parameter.sample = get_mutated_value(parameter.sample, parameter.schema_info,
+                if(type(parameter.sample) is FuzzCore.Taxonomy.Attribute):
+                    parameter.sample.value = get_mutated_value(parameter.sample.value, parameter.sample.type,
+                                                     mutation_methods[type(parameter.sample.value)], parameter.sample.name,
+                                                     ids)
+                else:
+                    if type(parameter.sample) not in mutation_methods:
+                        print(parameter.sample)
+                    parameter.sample = get_mutated_value(parameter.sample, parameter.schema_info,
                                                      mutation_methods[type(parameter.sample)], parameter_name,
                                                      ids)
             else:

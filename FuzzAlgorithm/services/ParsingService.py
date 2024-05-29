@@ -32,14 +32,16 @@ def parse_request_body(data: Dict) -> RequestBody:
     sample=parse_schema(data['sample'])
     return RequestBody(schema=schema, sample=sample)
 
-def parse_http_request(data: Dict,base_url:str) -> HTTPRequest:
+def parse_http_requests(data: Dict) -> Dict:
+    return {key: parse_http_request(value) for key, value in data.items()}
+def parse_http_request(data: Dict) -> HTTPRequest:
     if data.get('parameters')!=[]:
         parameters = [parse_parameter(param) for param in data.get('parameters', [])]
     else:
         parameters = []
-    request_body = parse_request_body(data['request_body']) if 'request_body' in data else None
+    request_body = parse_request_body(data['request_body']) if data['request_body'] is not None else None
     return HTTPRequest(
-        url=base_url,
+        url=data['url'],
         content_type=data['content_type'],
         method=data['method'],
         parameters=parameters,
