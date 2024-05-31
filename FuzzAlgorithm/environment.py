@@ -5,6 +5,7 @@ import gym
 import requests
 from gym.spaces import MultiDiscrete, Discrete
 
+import FuzzCore.Taxonomy
 from utils import fill_values
 
 
@@ -54,7 +55,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
         self.response = resp
         requests_log.append({"status_code": self.response.status_code, "message": self.response.content})
-
+        print(self.response.text)
         self._update_environment_state(requests_log)
 
         # Calculate the reward based on the response
@@ -77,7 +78,10 @@ class APIFuzzyTestingEnvironment(gym.Env):
         if len(function.parameters) > 0:
             for item in function.parameters:
                 if item.name in path:
-                    path = path.replace('{' + item.name + '}', str(item.sample))
+                    sample = item.sample
+                    if (isinstance(item.sample, FuzzCore.Taxonomy.Attribute)):
+                        sample=item.sample.value
+                    path = path.replace('{' + item.name + '}', str(sample))
                 else:
                     parameters[item.name] = str(item.sample)
         try:
@@ -97,7 +101,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                                         timeout=40)
 
             elif function.method == 'DELETE':
-                sample = function.request_done.to_dict_request() if function.request_body else None
+                sample = function.request_body.to_dict_request() if function.request_body else None
                 if len(parameters) > 0:
                     return requests.delete(self.base_url + path, json=sample, headers=headers,
                                            params=parameters, timeout=40)
@@ -106,7 +110,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
                                            timeout=40)
 
             elif function.method == 'POST':
-                sample = function.request_body.to_dict_request()
+                sample = function.request_body.to_dict_request() if function.request_body else None
                 if function.content_type == "multipart/form-data":
                     files = {'file':sample.pop('file')}
                     if len(parameters) > 0:

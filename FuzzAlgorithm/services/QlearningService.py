@@ -6,8 +6,8 @@ from FuzzAlgorithm.services.IfuzzAlgorithmService import IFuzzingService
 
 class QlearningService(IFuzzingService):
     async def fuzz(self, data):
-        requests_log = []
-        metrics= []
+
+        metrics = []
         env = None
         for scenario_functions in data.scenarios:
             for function in scenario_functions:
@@ -19,11 +19,12 @@ class QlearningService(IFuzzingService):
                 else:
                     env._change_environment_function(data.function[function])
                 agent = QLearningAgent(env, utils.mutation_methods, data.max_steps_per_episode, data.exploration_rate)
-                agent.train(data.num_episodes,requests_log)
-                metricTrain=write_agent_report(agent, requests_log, data.ids)
+                agent.train(data.num_episodes, requests_log)
+                metricTrain = write_agent_report(agent, requests_log, data.ids)
                 metrics.append(metricTrain)
                 requests_log = []
                 agent.test(requests_log)
-                metricTest=write_agent_report(agent, requests_log, data.ids)
+                metricTest = write_agent_report(agent, requests_log, data.ids)
+                metrics.append(metricTest)
 
-        return {"message": "FuzzAlgorithm initialized"}
+        return metrics

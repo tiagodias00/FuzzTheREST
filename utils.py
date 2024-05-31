@@ -74,7 +74,7 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
 
                         attr.value = get_mutated_value(item.type, None, mutation_methods[item.type],
                                                        Word(schema_name.capitalize()).singularize(), ids)
-                    if item.name == 'id' and store_id:
+                    if item.is_id and store_id:
                         attr = search_attr(sample, item.name)
                         if attr not in ids[Word(schema_name.capitalize()).singularize()]:
                             ids[Word(schema_name.capitalize()).singularize()].append(copy.deepcopy(attr))
@@ -139,8 +139,6 @@ def fill_parameter_values(input_parameters, contains_previous, mutation_methods,
                                                      mutation_methods[type(parameter.sample.value)], parameter.sample.name,
                                                      ids)
                 else:
-                    if type(parameter.sample) not in mutation_methods:
-                        print(parameter.sample)
                     parameter.sample = get_mutated_value(parameter.sample, parameter.schema_info,
                                                      mutation_methods[type(parameter.sample)], parameter_name,
                                                      ids)

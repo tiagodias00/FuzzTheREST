@@ -151,12 +151,16 @@ def parse_OpenApi_file(file_path: str,ids_fields):
                         schema = "array"
                         schema_type = input_schema['items']
                         if 'type' in schema_type:
+
                             schema_type = input_schema['items']['type']
                         elif '$ref' in schema_type:
                             schema_name = input_schema['items']['$ref'].split('/')[-1]
                             schema = schemas.get(schema_name)
                     else:
-                        schema = input_schema['type']
+                        obj = Object(attributes=[])
+                        attribute = Attribute(type=input_schema['type'], name="attribute")
+                        obj.attributes.append(attribute)
+                        schema =Schema(schema_name="schema",objects=[obj])
 
                 if '$ref' in input_schema:
                     schema_name = input_schema['$ref'].split('/')[-1]
