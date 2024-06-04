@@ -52,6 +52,5 @@ async def initialize(data: dict = Body(...), service_data_model=Depends(getFuzzS
     if result is None:
         raise HTTPException(status_code=404, detail="Error initializing FuzzAlgorithm")
     return {
-        "message": "FuzzAlgorithm initialized",
         "result": result
     }

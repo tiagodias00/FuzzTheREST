@@ -475,7 +475,6 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
 
         self.response = resp
-        print("message: ", self.response.content)
         requests_log.append({"status_code": self.response.status_code, "message": self.response.content})
 
         self._update_environment_state()

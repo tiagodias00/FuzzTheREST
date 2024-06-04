@@ -30,6 +30,6 @@ def initiate_fuzzing(data, base_url, functions_data, ids, scenarios):
 
     payload = BasePayload(**basepayload)
     payload_json = payload.json()
-    requests.post(url, headers=headers, data=payload_json)
+    response=requests.post(url, headers=headers, data=payload_json)
 
-    return
+    return response.json()

@@ -1,5 +1,6 @@
 import copy
-import pickle
+import hashlib
+import traceback
 
 import gym
 import requests
@@ -9,10 +10,8 @@ import FuzzCore.Taxonomy
 from utils import fill_values
 
 
-
-
 class APIFuzzyTestingEnvironment(gym.Env):
-    def __init__(self, base_url, function, mutation_methods,ids):
+    def __init__(self, base_url, function, mutation_methods, ids):
         super(APIFuzzyTestingEnvironment, self).__init__()
         self.function = function
         self.base_url = base_url
@@ -23,7 +22,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.done = False
         self.ids = ids
 
-    def step(self, action,requests_log):
+    def step(self, action, requests_log, crashes=None, hangs=None):
         # Execute the action on the API and get the response
         mutation_methods = {}
         mutation_methods[int] = self.mutation_methods[0][action[0]]
@@ -40,18 +39,18 @@ class APIFuzzyTestingEnvironment(gym.Env):
             if self.function.method == 'POST':
                 if count == 5:
                     print("stuck here")
-                    self.function = fill_values(self.function, False, mutation_methods, True,self.ids)
+                    self.function = fill_values(self.function, False, mutation_methods, True, self.ids)
                     count = 0
                 else:
-                    self.function = fill_values(self.function, True, mutation_methods, True,self.ids)
+                    self.function = fill_values(self.function, True, mutation_methods, True, self.ids)
             else:
                 if count == 5:
-                    self.function = fill_values(self.function, False, mutation_methods, False,self.ids)
+                    self.function = fill_values(self.function, False, mutation_methods, False, self.ids)
                     count = 0
                 else:
-                    self.function = fill_values(self.function, True, mutation_methods, False,self.ids)
+                    self.function = fill_values(self.function, True, mutation_methods, False, self.ids)
 
-            resp = self._execute_action(self.function)
+            resp = self._execute_action(self.function, crashes, hangs)
 
         self.response = resp
         requests_log.append({"status_code": self.response.status_code, "message": self.response.content})
@@ -69,10 +68,14 @@ class APIFuzzyTestingEnvironment(gym.Env):
         self.done = False
         return self.state
 
-    def _execute_action(self, function):
+    def _execute_action(self, function, crashes=None, hangs=None):
+        if crashes is None:
+            crashes = {}
+        if hangs is None:
+            hangs = {}
         parameters = {}
         headers = {'Content-type': function.content_type, 'accept': '*/*'}
-
+        response = None
 
         path: str = copy.deepcopy(function.url)
         if len(function.parameters) > 0:
@@ -80,53 +83,62 @@ class APIFuzzyTestingEnvironment(gym.Env):
                 if item.name in path:
                     sample = item.sample
                     if (isinstance(item.sample, FuzzCore.Taxonomy.Attribute)):
-                        sample=item.sample.value
+                        sample = item.sample.value
                     path = path.replace('{' + item.name + '}', str(sample))
                 else:
                     parameters[item.name] = str(item.sample)
         try:
             if function.method == 'GET':
                 if len(parameters) > 0:
-                    return requests.get(self.base_url + path, params=parameters, timeout=40)
+                    response = requests.get(self.base_url + path, params=parameters, timeout=40)
                 else:
-                    return requests.get(self.base_url + path, timeout=40)
+                    response = requests.get(self.base_url + path, timeout=40)
 
             elif function.method == 'PUT':
-                sample=function.request_body.to_dict_request()
+                sample = function.request_body.to_dict_request()
                 if len(parameters) > 0:
-                    return requests.put(self.base_url + path, json=sample, headers=headers,
-                                        params=parameters, timeout=40)
+                    response = requests.put(self.base_url + path, json=sample, headers=headers,
+                                            params=parameters, timeout=40)
                 else:
-                    return requests.put(self.base_url + path, json=sample, headers=headers,
-                                        timeout=40)
+                    response = requests.put(self.base_url + path, json=sample, headers=headers,
+                                            timeout=40)
 
             elif function.method == 'DELETE':
                 sample = function.request_body.to_dict_request() if function.request_body else None
                 if len(parameters) > 0:
-                    return requests.delete(self.base_url + path, json=sample, headers=headers,
-                                           params=parameters, timeout=40)
+                    response = requests.delete(self.base_url + path, json=sample, headers=headers,
+                                               params=parameters, timeout=40)
                 else:
-                    return requests.delete(self.base_url + path, json=sample, headers=headers,
-                                           timeout=40)
+                    response = requests.delete(self.base_url + path, json=sample, headers=headers,
+                                               timeout=40)
 
             elif function.method == 'POST':
                 sample = function.request_body.to_dict_request() if function.request_body else None
                 if function.content_type == "multipart/form-data":
-                    files = {'file':sample.pop('file')}
+                    files = {'file': sample.pop('file')}
                     if len(parameters) > 0:
-                        return requests.post(self.base_url + path, json=sample, files=files,
-                                             params=parameters, timeout=40)
+                        response = requests.post(self.base_url + path, json=sample, files=files,
+                                                 params=parameters, timeout=40)
                     else:
-                        return requests.post(self.base_url + path, json=sample, files=files,
-                                             timeout=40)
+                        response = requests.post(self.base_url + path, json=sample, files=files,
+                                                 timeout=40)
                 else:
                     if len(parameters) > 0:
-                        return requests.post(self.base_url + path, json=sample,
-                                             headers=headers, params=parameters, timeout=40)
+                        response = requests.post(self.base_url + path, json=sample,
+                                                 headers=headers, params=parameters, timeout=40)
                     else:
-                        return requests.post(self.base_url + path, json=sample,
-                                             headers=headers, timeout=40)
-        except:
+                        response = requests.post(self.base_url + path, json=sample,
+                                                 headers=headers, timeout=40)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.Timeout as e:
+            log_and_track_hangs(e, function, hangs)
+            return "error"
+        except requests.exceptions.HTTPError as e:
+            if response.status_code >= 500:
+                log_and_track_crash(e, function, crashes)
+            return response
+        except Exception as e:
             return "error"
 
     def _calculate_reward(self):
@@ -146,7 +158,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
         return 0
 
-    def _update_environment_state(self,requests_log):
+    def _update_environment_state(self, requests_log):
         # Implement any necessary state updates based on the API response
         # For example, update the state with new information after each request
         # Change the state
@@ -184,5 +196,49 @@ class APIFuzzyTestingEnvironment(gym.Env):
 
         pass
 
-    def serialize(self):
-        return pickle.dumps(self)
+
+def get_unique_crash_identifier(exception):
+    exc_type = type(exception).__name__
+    exc_message = str(exception)
+    stack_trace_elements = traceback.format_tb(exception.__traceback__)
+    limited_stack_trace = ''.join(stack_trace_elements[:5])
+    unique_hash_input = f"{exc_type}:{exc_message}:{limited_stack_trace}"
+    return hashlib.sha256(unique_hash_input.encode()).hexdigest()
+
+
+def log_and_track_crash(exception, function, crash_dict):
+    crash_id = get_unique_crash_identifier(exception)
+    if crash_id in crash_dict:
+        crash_dict[crash_id]['count'] += 1
+    else:
+
+        crash_dict[crash_id] = {
+            'count': 1,
+            'error_message': str(exception),
+            'stack_trace': ''.join(traceback.format_tb(exception.__traceback__)[5:15]),
+            'sample_input': function,
+        }
+    return crash_dict
+
+
+def get_unique_hang_identifier(exception, function):
+    exc_type = type(exception).__name__
+    exc_message = str(exception)
+    unique_hash_input = f"{exc_type}:{exc_message}:{function.url}:{function.method}"
+    return hashlib.sha256(unique_hash_input.encode()).hexdigest()
+
+
+def log_and_track_hangs(exception, function, hang_dict):
+    hang_id = get_unique_hang_identifier(exception, function)
+    if hang_id in hang_dict:
+        hang_dict[hang_id]['count'] += 1
+    else:
+        hang_dict[hang_id] = {
+            'count': 1,
+            'error_message': str(exception),
+            'url': function.url,
+            'method': function.method,
+            'headers': function.request_body.headers if function.request_body else None,
+            'parameters': function.parameters,
+        }
+    return hang_dict

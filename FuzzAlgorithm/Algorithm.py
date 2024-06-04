@@ -51,7 +51,7 @@ class QLearningAgent:
         q_table[state, action] = q_table[state, action] * (1 - self.learning_rate) + \
                                  self.learning_rate * (reward + self.discount_factor * np.max(q_table[new_state, :]))
 
-    def train(self, num_episodes,request_logs):
+    def train(self, num_episodes,request_logs,crashes,hangs):
         self.q_value_convergence = {
             'int': [],
             'float': [],
@@ -72,7 +72,7 @@ class QLearningAgent:
             for step in range(self.max_steps_per_episode):
                 action = self.choose_action(state, self.int_q_table, self.float_q_table, self.bool_q_table,
                                             self.byte_q_table, self.string_q_table)
-                new_state, reward, done = self.env.step(action, request_logs)
+                new_state, reward, done = self.env.step(action, request_logs,crashes,hangs)
 
                 self.update_q_table(state, action[0], reward, new_state, self.int_q_table)
                 self.update_q_table(state, action[1], reward, new_state, self.float_q_table)
@@ -198,7 +198,7 @@ class QLearningAgent:
         plt.savefig(base_path + "state_visits.png", bbox_inches='tight')
         plt.close()
 
-    def test(self,request_logs):
+    def test(self,request_logs,crashes,hangs):
         for episode in range(5):
             state = self.env.reset()
             done = False
@@ -215,7 +215,7 @@ class QLearningAgent:
                 action.append(np.argmax(self.bool_q_table[state, :]))
                 action.append(np.argmax(self.byte_q_table[state, :]))
                 action.append(np.argmax(self.string_q_table[state, :]))
-                new_state, reward, done = self.env.step(action,request_logs)
+                new_state, reward, done = self.env.step(action,request_logs,crashes,hangs)
 
                 if done:
                     self.env.render()
@@ -230,7 +230,7 @@ class QLearningAgent:
 
                 state = new_state
 
-def write_agent_report(agent,requests_log,ids):
+def write_agent_report(agent,requests_log,ids,name):
         requests_log_decoded = []
         for request in requests_log:
             decoded_request = {}
@@ -243,6 +243,7 @@ def write_agent_report(agent,requests_log,ids):
 
 
         return  {
+            "name": name,
             "ids": ids,
             "requests_log": requests_log_decoded,
             "q_tables": {
