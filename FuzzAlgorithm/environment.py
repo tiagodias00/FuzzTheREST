@@ -238,7 +238,6 @@ def log_and_track_hangs(exception, function, hang_dict):
             'error_message': str(exception),
             'url': function.url,
             'method': function.method,
-            'headers': function.request_body.headers if function.request_body else None,
             'parameters': function.parameters,
         }
     return hang_dict

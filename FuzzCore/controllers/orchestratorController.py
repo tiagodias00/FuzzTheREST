@@ -1,6 +1,8 @@
 import json
 from datetime import datetime
 from typing import List, Dict, Any
+from bson import json_util
+
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Extra
@@ -56,7 +58,9 @@ async def StartFuzzing(request: BaseAlgorithm, mongoDBService=Depends(get_MongoD
 
     if (metrics is None):
         raise HTTPException(status_code=500, detail="Error in Fuzzing")
-    saved = mongoDBService.save_metrics(key, json.dumps(metrics))
+
+    jsonMetrics = json.dumps(metrics['result'])
+    saved = mongoDBService.save_metrics(key, jsonMetrics)
     if not saved:
         raise HTTPException(status_code=500, detail="Error in saving metrics")
     return {"message": "Fuzzing process saved with success"}

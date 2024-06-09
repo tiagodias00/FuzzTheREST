@@ -13,6 +13,7 @@ class QlearningService(IFuzzingService):
         crashes = {}
         hangs={}
         env = None
+
         for scenario_functions in data.scenarios:
             for function in scenario_functions:
                 requests_log = []
@@ -25,13 +26,14 @@ class QlearningService(IFuzzingService):
                 agent = QLearningAgent(env, utils.mutation_methods, data.max_steps_per_episode, data.exploration_rate)
                 agent.train(data.num_episodes, requests_log, crashes,hangs)
                 name = "Train" + function
-                metricTrain = write_agent_report(agent, requests_log, data.ids,name)
+                metricTrain = write_agent_report(agent, name)
                 metrics.append(metricTrain)
                 requests_log = []
+
                 agent.test(requests_log,crashes,hangs)
                 name = "Test" + function
-                metricTest = write_agent_report(agent, requests_log, data.ids,name)
+                metricTest = write_agent_report(agent,name)
                 metrics.append(metricTest)
         end_time = time.time()
         duration = end_time - start_time
-        return {"Requests_metrics":metrics,"Duration":duration,"Crashes":crashes,"Hangs":hangs}
+        return {"Requests_metrics":metrics,"Duration":duration,"Crashes":crashes,"Hangs":hangs,"episodes":data.num_episodes}

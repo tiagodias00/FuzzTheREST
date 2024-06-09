@@ -1,9 +1,12 @@
 import os
 from dotenv import load_dotenv
-from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from pymongo import MongoClient
+import gridfs
+import gzip
 
 load_dotenv()
+
 
 class MongoDBService:
     def __init__(self):
@@ -29,14 +32,15 @@ class MongoDBService:
             self.connect()
         if self.client:
             try:
-                document = {"_id": key, "data": data}
-                result = self.collection.update_one(
-                    {"_id": key},
-                    {"$set": document},
-                    upsert=True
-                )
-                return result.acknowledged
+
+                fs = gridfs.GridFS(self.db)
+                json_bytes = data.encode()
+                compressed_json = gzip.compress(json_bytes)
+                file_id = fs.put(compressed_json)
+                self.collection.insert_one({"key": key, "file_id": file_id})
+                return True
+
+
             except PyMongoError as e:
                 print(f"MongoDB error: {e}")
                 return False
-

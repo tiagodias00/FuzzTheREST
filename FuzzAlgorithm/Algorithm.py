@@ -1,6 +1,8 @@
+import json
 import random
 
 import numpy as np
+from fastapi.encoders import jsonable_encoder
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from FuzzAlgorithm.environment import APIFuzzyTestingEnvironment
@@ -230,27 +232,50 @@ class QLearningAgent:
 
                 state = new_state
 
-def write_agent_report(agent,requests_log,ids,name):
-        requests_log_decoded = []
-        for request in requests_log:
-            decoded_request = {}
-            for key, value in request.items():
-                if isinstance(value, bytes):
-                    decoded_request[key] = value.decode('utf-8')
-                else:
-                    decoded_request[key] = value
-            requests_log_decoded.append(decoded_request)
-
-
-        return  {
-            "name": name,
-            "ids": ids,
-            "requests_log": requests_log_decoded,
-            "q_tables": {
-                "int_table": str(agent.int_q_table),
-                "float_table": str(agent.float_q_table),
-                "bool_table": str(agent.bool_q_table),
-                "string_table": str(agent.string_q_table),
-                "byte_table": str(agent.byte_q_table)
-            }
+def write_agent_report(agent,name):
+        q_tables_serializable = {
+            "int_q_table": agent.int_q_table.tolist() if isinstance(agent.int_q_table,
+                                                                    np.ndarray) else agent.int_q_table,
+            "float_q_table": agent.float_q_table.tolist() if isinstance(agent.float_q_table,
+                                                                        np.ndarray) else agent.float_q_table,
+            "bool_q_table": agent.bool_q_table.tolist() if isinstance(agent.bool_q_table,
+                                                                      np.ndarray) else agent.bool_q_table,
+            "byte_q_table": agent.byte_q_table.tolist() if isinstance(agent.byte_q_table,
+                                                                      np.ndarray) else agent.byte_q_table,
+            "string_q_table": agent.string_q_table.tolist() if isinstance(agent.string_q_table,
+                                                                          np.ndarray) else agent.string_q_table,
         }
+
+        mutation_counts_serializable = {
+            str(key): {func.__name__: value for func, value in inner_dict.items()}
+            for key, inner_dict in agent.mutation_counts.items()
+        }
+
+        mutation_rewards_serializable = {
+            str(key): {func.__name__: value for func, value in inner_dict.items()}
+            for key, inner_dict in agent.mutation_rewards.items()
+        }
+
+
+        q_value_convergence_serializable = {
+            "int": [q.tolist() for q in agent.q_value_convergence['int']],
+            "float": [q.tolist() for q in agent.q_value_convergence['float']],
+            "bool": [q.tolist() for q in agent.q_value_convergence['bool']],
+            "byte": [q.tolist() for q in agent.q_value_convergence['byte']],
+            "string": [q.tolist() for q in agent.q_value_convergence['string']],
+        }
+
+
+        report = {
+            "name": name,
+            "q_tables": q_tables_serializable,
+            "episode_rewards": agent.episode_rewards,
+            "state_visits": agent.state_visits.tolist(),
+            "mutation_counts": mutation_counts_serializable,
+            "mutation_rewards": mutation_rewards_serializable,
+            "q_value_convergence": q_value_convergence_serializable
+        }
+
+        return report
+
+

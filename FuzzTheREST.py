@@ -692,7 +692,7 @@ class QLearningAgent:
             print(count, ": ", str(sum(r/num_episodes)))
             count += num_episodes
 
-    def plot_q_value_convergence(self, base_path):
+    def plot_q_value_convergence(self, file_server_url,name):
         x = np.arange(0, self.num_episodes)
         data_types = ['int', 'float', 'bool', 'byte', 'string']
         for data_type in data_types:
@@ -704,8 +704,25 @@ class QLearningAgent:
         plt.ylabel('Average Q-value')
         plt.legend()
         plt.title('Q-value Convergence')
-        plt.savefig(base_path + "q_value_convergence.png")
+
+        # Save the plot to a temporary file
+        temp_filename = "q_value_convergence.png"+ name
+        plt.savefig(temp_filename)
         plt.close()
+
+        # Upload the file to the file server
+        try:
+            with open(temp_filename, 'rb') as f:
+                files = {'file': f}
+                response = requests.post(file_server_url, files=files)
+                response.raise_for_status()  # Raise an error for bad status codes
+                print(f"File uploaded successfully: {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to upload file: {e}")
+        finally:
+            # Remove the temporary file
+            if os.path.exists(temp_filename):
+                os.remove(temp_filename)
 
     def plot_learning_curve(self, num_episodes):
         # Calculate the average reward over a fixed number of episodes (e.g., last 100 episodes) and plot the learning curve
