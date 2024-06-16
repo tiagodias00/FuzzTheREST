@@ -1,15 +1,15 @@
 @startuml
-
-
-class OpenApiSpecifications {
-endpoints
-parameters
-schemas
-}
 package "Report Aggregate" {
 
     entity Report<<Aggregate Root>>{
     }
+
+    class TestMetrics {
+totalRequests
+CodeCoverage
+UniqueCrashes
+}
+
     class HTTPRequest {
         url
         method
@@ -34,11 +34,7 @@ class RequestResponse<<ValueObject>> {
     body
 }
 
-class TestMetrics {
-totalRequests
-CodeCoverage
-UniqueCrashes
-}
+
 
 }
 class Schema<<valueObject>> {
@@ -60,7 +56,6 @@ class Object<<valueObject>>{
 
 }
 
-OpenApiSpecifications "1" --> "*" HTTPRequest : informs Creation >
 RequestResponse "*" --> "1" TestMetrics : generates >
 HTTPRequest "1" --> "1" RequestResponse : receives >
 

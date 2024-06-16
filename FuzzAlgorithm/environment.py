@@ -214,9 +214,9 @@ def log_and_track_crash(exception, function, crash_dict):
 
         crash_dict[crash_id] = {
             'count': 1,
-            'error_message': str(exception),
+            'error_message':exception.response.text,
             'stack_trace': ''.join(traceback.format_tb(exception.__traceback__)[5:15]),
-            'sample_input': function,
+            'sample_input':f"url:{exception.request.url},body: {exception.request.body}",
         }
     return crash_dict
 
