@@ -3,6 +3,8 @@ from typing import List, Dict, Optional
 
 class Attribute:
     def __init__(self, type, name: str, is_id: bool = False, value=None):
+        if not name:
+            raise ValueError("Attribute name must be provided.")
         self.type = type
         self.name = name
         self.value = value

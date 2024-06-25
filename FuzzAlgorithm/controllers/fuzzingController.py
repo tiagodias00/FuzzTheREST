@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel, create_model
 
 from FuzzAlgorithm.services.IfuzzAlgorithmService import IFuzzingService
-from FuzzAlgorithm.services.ParsingService import parse_http_request, parse_http_requests
+from FuzzAlgorithm.services.ParsingService import parse_http_requests
 from FuzzAlgorithm.services.QlearningService import QlearningService
 
 router = APIRouter()

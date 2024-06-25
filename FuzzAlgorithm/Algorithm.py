@@ -1,8 +1,6 @@
-import json
 import random
 
 import numpy as np
-from fastapi.encoders import jsonable_encoder
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from FuzzAlgorithm.environment import APIFuzzyTestingEnvironment

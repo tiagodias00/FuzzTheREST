@@ -79,11 +79,12 @@ def create_schemas_and_ids(spec, ids_fields):
         if object_name in ids_fields:
             ids[object_name] =[]
 
-    for object_name, object_data in spec['components']['requestBodies'].items():
-        schema = create_Schema(object_name, object_data, schemas,ids_fields)
-        schemas[object_name] = schema
-        if object_name in ids_fields:
-            ids[object_name] = []
+    if('requestBodies' in spec['components']):
+        for object_name, object_data in spec['components']['requestBodies'].items():
+            schema = create_Schema(object_name, object_data, schemas,ids_fields)
+            schemas[object_name] = schema
+            if object_name in ids_fields:
+                ids[object_name] = []
 
     return schemas, ids
 
@@ -130,6 +131,8 @@ def parse_OpenApi_file(file_path: str,ids_fields):
                     function_parameters.append(Parameter(parameter_name, parameter_in, parameter_schema_name,
                                                          copy.deepcopy(parameter_schema_name)))
 
+            input_applicaton = None
+
             # Extract input schema
             if (request_body != None and 'content' in request_body):
                 input_schema = request_body['content']
@@ -165,6 +168,10 @@ def parse_OpenApi_file(file_path: str,ids_fields):
                 if '$ref' in input_schema:
                     schema_name = input_schema['$ref'].split('/')[-1]
                     schema = schemas.get(schema_name)
+
+                if 'properties' in input_schema:
+                    schema = create_Schema(request_name, input_schema, schemas,ids_fields)
+
 
             if schema is None:
                 input_body = None

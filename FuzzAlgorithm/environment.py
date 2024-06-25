@@ -74,7 +74,8 @@ class APIFuzzyTestingEnvironment(gym.Env):
         if hangs is None:
             hangs = {}
         parameters = {}
-        headers = {'Content-type': function.content_type, 'accept': '*/*'}
+        base_header={'PRIVATE-TOKEN':'glpat-YZSPkZPT6M5dzhn6--Vw'}
+        headers = {'Content-type': function.content_type, 'accept': '*/*','PRIVATE-TOKEN':'glpat-YZSPkZPT6M5dzhn6--Vw'}
         response = None
 
         path: str = copy.deepcopy(function.url)
@@ -90,12 +91,12 @@ class APIFuzzyTestingEnvironment(gym.Env):
         try:
             if function.method == 'GET':
                 if len(parameters) > 0:
-                    response = requests.get(self.base_url + path, params=parameters, timeout=40)
+                    response = requests.get(self.base_url + path,headers=base_header, params=parameters, timeout=40)
                 else:
-                    response = requests.get(self.base_url + path, timeout=40)
+                    response = requests.get(self.base_url + path,headers=base_header, timeout=40)
 
             elif function.method == 'PUT':
-                sample = function.request_body.to_dict_request()
+                sample = function.request_body.to_dict_request() if function.request_body else None
                 if len(parameters) > 0:
                     response = requests.put(self.base_url + path, json=sample, headers=headers,
                                             params=parameters, timeout=40)

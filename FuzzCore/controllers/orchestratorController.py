@@ -1,7 +1,6 @@
 import json
 from datetime import datetime
 from typing import List, Dict, Any
-from bson import json_util
 
 
 from fastapi import APIRouter, HTTPException, Depends
