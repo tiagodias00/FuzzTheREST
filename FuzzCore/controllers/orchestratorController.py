@@ -49,15 +49,14 @@ async def StartFuzzing(request: BaseAlgorithm, mongoDBService=Depends(get_MongoD
 
     params.scenarios = json.loads(params.scenarios)
 
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    key = f"fuzzing_metrics:{params.algorithm_type}:{timestamp}"
-
     metrics = initiate_fuzzing(params, openApi_data['base_url'], openApi_data['httpRequests'],
                                openApi_data['ids'], params.scenarios)
 
     if (metrics is None):
         raise HTTPException(status_code=500, detail="Error in Fuzzing")
 
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+    key = f"fuzzing_metrics:{params.algorithm_type}:{timestamp}"
     jsonMetrics = json.dumps(metrics['result'])
     saved = mongoDBService.save_metrics(key, jsonMetrics)
     if not saved:

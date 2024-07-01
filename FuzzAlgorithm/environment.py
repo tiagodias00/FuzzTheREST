@@ -8,6 +8,7 @@ from gym.spaces import MultiDiscrete, Discrete
 
 import FuzzCore.Taxonomy
 from utils import fill_values
+import urllib.parse
 
 
 class APIFuzzyTestingEnvironment(gym.Env):
@@ -74,8 +75,7 @@ class APIFuzzyTestingEnvironment(gym.Env):
         if hangs is None:
             hangs = {}
         parameters = {}
-        base_header={'PRIVATE-TOKEN':'glpat-YZSPkZPT6M5dzhn6--Vw'}
-        headers = {'Content-type': function.content_type, 'accept': '*/*','PRIVATE-TOKEN':'glpat-YZSPkZPT6M5dzhn6--Vw'}
+        headers = {'Content-type': function.content_type, 'accept': '*/*'}
         response = None
 
         path: str = copy.deepcopy(function.url)
@@ -85,15 +85,15 @@ class APIFuzzyTestingEnvironment(gym.Env):
                     sample = item.sample
                     if (isinstance(item.sample, FuzzCore.Taxonomy.Attribute)):
                         sample = item.sample.value
-                    path = path.replace('{' + item.name + '}', str(sample))
+                    path = safe_replace_path(path, item.name, sample)
                 else:
                     parameters[item.name] = str(item.sample)
         try:
             if function.method == 'GET':
                 if len(parameters) > 0:
-                    response = requests.get(self.base_url + path,headers=base_header, params=parameters, timeout=40)
+                    response = requests.get(self.base_url + path, params=parameters, timeout=40)
                 else:
-                    response = requests.get(self.base_url + path,headers=base_header, timeout=40)
+                    response = requests.get(self.base_url + path, timeout=40)
 
             elif function.method == 'PUT':
                 sample = function.request_body.to_dict_request() if function.request_body else None
@@ -112,7 +112,23 @@ class APIFuzzyTestingEnvironment(gym.Env):
                 else:
                     response = requests.delete(self.base_url + path, json=sample, headers=headers,
                                                timeout=40)
-
+            elif function.method == 'PATCH':
+                sample = function.request_body.to_dict_request() if function.request_body else None
+                if function.content_type == "multipart/form-data":
+                    files = {'plant': sample.pop('plant')}
+                    if len(parameters) > 0:
+                        response = requests.patch(self.base_url + path, json=sample, files=files,
+                                                 params=parameters,headers=headers, timeout=40)
+                    else:
+                        response = requests.patch(self.base_url + path,json=sample, files=files,headers=headers,
+                                                 timeout=40)
+                else:
+                    if len(parameters) > 0:
+                        response = requests.patch(self.base_url + path, json=sample, headers=headers,
+                                                params=parameters, timeout=40)
+                    else:
+                        response = requests.patch(self.base_url + path, json=sample, headers=headers,
+                                                timeout=40)
             elif function.method == 'POST':
                 sample = function.request_body.to_dict_request() if function.request_body else None
                 if function.content_type == "multipart/form-data":
@@ -217,7 +233,7 @@ def log_and_track_crash(exception, function, crash_dict):
             'count': 1,
             'error_message':exception.response.text,
             'stack_trace': ''.join(traceback.format_tb(exception.__traceback__)[5:15]),
-            'sample_input':f"url:{exception.request.url},body: {exception.request.body}",
+            'sample_input':f"url:{exception.request.url},\n body: {exception.request.body}",
         }
     return crash_dict
 
@@ -242,3 +258,7 @@ def log_and_track_hangs(exception, function, hang_dict):
             'parameters': function.parameters,
         }
     return hang_dict
+
+def safe_replace_path(path, item_name, sample):
+    encoded_sample = str(sample).replace('/', '%2F')
+    return path.replace('{' + item_name + '}', encoded_sample)

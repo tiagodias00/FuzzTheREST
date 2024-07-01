@@ -76,12 +76,14 @@ def fill_body_values(schema, old_sample, contains_previous, mutation_methods, sc
                                                        Word(schema_name.capitalize()).singularize(), ids)
                     if item.is_id and store_id:
                         attr = search_attr(sample, item.name)
-                        if attr not in ids[Word(schema_name.capitalize()).singularize()]:
-                            ids[Word(schema_name.capitalize()).singularize()].append(copy.deepcopy(attr))
+                        word = Word(capitalize_first(schema_name)).singularize()
+                        if attr not in ids[word]:
+                            ids[word].append(copy.deepcopy(attr))
 
         return sample
 
-
+def capitalize_first(s):
+    return s[0].upper() + s[1:]
 def search_attr(schema, name):
     for attr in schema.attributes:
         if attr.name == name:
