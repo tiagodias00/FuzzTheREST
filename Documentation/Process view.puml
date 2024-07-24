@@ -1,0 +1,27 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+actor Tester
+participant FuzzTheRest
+activate Tester
+Tester -> FuzzTheRest: Requests to start the fuzzing process
+activate FuzzTheRest
+FuzzTheRest -> Tester: asks for OpenAPI specifications
+deactivate FuzzTheRest
+Tester -> FuzzTheRest: Sends OpenAPI specifications file
+activate FuzzTheRest
+FuzzTheRest -> Tester: Displays API information and requests to select the data (ids of entities and endpoints,Algorithm type )
+deactivate FuzzTheRest
+Tester -> FuzzTheRest: Selects the pretended data
+activate FuzzTheRest
+FuzzTheRest -> Tester: Asks for the algorithm parameters for this fuzzing iteration
+deactivate FuzzTheRest
+Tester -> FuzzTheRest: Sends the algorithm parameters
+activate FuzzTheRest
+FuzzTheRest -> Tester: Starts the fuzzing process and saves the results
+deactivate FuzzTheRest
+deactivate Tester
+
+@enduml

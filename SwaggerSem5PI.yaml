@@ -1,0 +1,835 @@
+openapi: 3.0.0
+info:
+  title: Your API
+  version: 1.0.0
+  description: Your API Description
+servers:
+- url: http://localhost:3000/api
+paths:
+  /building/createBuilding:
+    post:
+      summary: Create a new building
+      tags:
+        - Building
+      operationId: createBuilding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Building'
+      responses:
+        '200':
+          description: Building created successfully
+        '400':
+          description: Invalid input
+  /building/buildingsList:
+    get:
+      summary: Get list of all buildings
+      operationId: listBuildings
+      tags:
+        - Building
+      responses:
+        '200':
+          description: List of all buildings
+        '500':
+          description: Server error
+  /building/updateBuilding:
+    put:
+      summary: Update an existing building
+      tags:
+        - Building
+      operationId: updateBuilding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Building'
+      responses:
+        '200':
+          description: Building updated successfully
+        '400':
+          description: Invalid input
+  /building/listBuildingsWithFloorRange:
+    get:
+      summary: List buildings within a floor range
+      operationId: listBuildingsWithFloorRange
+      tags:
+        - Building
+      parameters:
+        - in: query
+          name: min
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: max
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of buildings within the floor range
+        '400':
+          description: Invalid input
+  /building/getBuildingFloors:
+    get:
+      summary: Get floors of a building
+      tags:
+        - Building
+      operationId: getFloorsBuilding
+      parameters:
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of floors of the building
+        '400':
+          description: Invalid input
+  /elevator/createElevator:
+    post:
+      summary: Create a new elevator
+      tags:
+        - Elevator
+      operationId: CreateElevator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Elevator'
+      responses:
+        '200':
+          description: Elevator created successfully
+        '400':
+          description: Bad request
+  /elevator/updateElevator:
+    patch:
+      summary: Update an existing elevator
+      operationId: UpdateElevator
+      tags:
+        - Elevator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Elevator'
+      responses:
+        '200':
+          description: Elevator updated successfully
+        '400':
+          description: Bad request
+  /elevator/getElevator:
+    get:
+      summary: Get elevator details
+      operationId: GetElevator
+      tags:
+        - Elevator
+      parameters:
+        - in: query
+          name: BuildingCode
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+        '400':
+          description: Bad request
+  /elevator/getElevators:
+    get:
+      summary: Get list of all elevators
+      operationId: GetAllElevators
+      tags:
+        - Elevator
+      responses:
+        '200':
+          description: Successful operation
+  /elevator/getBuildingWithoutElevators:
+    get:
+      summary: Get buildings without elevators
+      operationId: getBuildingsWithoutElevators
+      tags:
+        - Elevator
+      responses:
+        '200':
+          description: Successful operation
+  /floor/getFloorsElevator:
+    get:
+      summary: Get floors served by elevators
+      tags:
+        - Floor
+      operationId: getFloorsElevator
+  /floor/getFloors:
+    get:
+      summary: Get list of all floors
+      tags:
+        - Floor
+      operationId: getFloors
+  /floor/uniao:
+    get:
+      summary: Union of two floors
+      tags:
+        - Floor
+      operationId: uniao
+      parameters:
+        - in: query
+          name: floor1
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: floor2
+          required: true
+          schema:
+            type: string
+  /floor/createFloor:
+    post:
+      summary: Create a new floor
+      tags:
+        - Floor
+      operationId: createFloor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Floor'
+  /floor/listFloorsWithElevators:
+    get:
+      summary: List floors with elevators
+      tags:
+        - Floor
+      operationId: listFloorsWithElevators
+      parameters:
+        - in: query
+          name: buildingCode
+          required: true
+          schema:
+            type: string
+  /floor/updateFloor:
+    patch:
+      summary: Update an existing floor
+      tags:
+        - Floor
+      operationId: updateFloor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Floor'
+  /floor/getPlant:
+    get:
+      summary: Get floor plan
+      tags:
+        - Floor
+      operationId: getPlant
+      parameters:
+        - in: query
+          name: buildingCode
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: floorName
+          required: true
+          schema:
+            type: string
+  /floor/uploadMap:
+    patch:
+      summary: Upload floor map
+      tags:
+        - Floor
+      operationId: uploadMap
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                plant:
+                  type: string
+                  format: binary
+                name:
+                  type: string
+                  description: Optional name
+  /floor/editPlayerPosition:
+    get:
+      summary: Edit player position on the floor
+      tags:
+        - Floor
+      operationId: editPlayerPosition
+      parameters:
+        - in: query
+          name: buildingCode
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: floorName
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: X
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: 'Y'
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: orientation
+          required: true
+          schema:
+            type: integer
+  /passage/createPassage:
+    post:
+      summary: Create a new passage
+      tags:
+        - Passage
+      operationId: createPassage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Passage'
+  /passage/getFloorsWithPassage:
+    get:
+      summary: Get floors with passage
+      tags:
+        - Passage
+      operationId: getFloorsWithPassage
+  /passage/getAllPassages:
+    get:
+      summary: Get all passages
+      tags:
+        - Passage
+      operationId: getAllPassages
+  /passage/getPassagesBuildings:
+    get:
+      summary: Get passages between buildings
+      tags:
+        - Passage
+      operationId: getPassagesBuildings
+      parameters:
+        - in: query
+          name: codeBuilding1
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: codeBuilding2
+          required: true
+          schema:
+            type: string
+  /passage/updatePassage:
+    put:
+      summary: Update a passage
+      tags:
+        - Passage
+      operationId: updatePassage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Passage'
+  /robot/inhibitRobot:
+    patch:
+      summary: Inhibit a robot
+      tags:
+        - Robot
+      operationId: inhibitRobot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InhibitRobot'
+  /robot/createRobot:
+    post:
+      summary: Create a new robot
+      tags:
+        - Robot
+      operationId: createRobot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRobot'
+  /robot/getRobots:
+    get:
+      summary: Get all robots
+      tags:
+        - Robot
+      operationId: getRobots
+  /robot/getRobotsByTask:
+    get:
+      summary: Get robots by task
+      tags:
+        - Robot
+      operationId: getRobotsByTask
+      parameters:
+        - in: query
+          name: tasksCode
+          required: true
+          schema:
+            type: string
+  /robotType/createRobotType:
+    post:
+      summary: Create a new robot type
+      tags:
+        - RobotType
+      operationId: createRobotType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RobotType'
+  /robotType/getRobotTypes:
+    get:
+      summary: Get all robot types
+      tags:
+        - RobotType
+      operationId: getRobotTypes
+  /roles/createRole:
+    post:
+      summary: Create a new role
+      tags:
+        - Role
+      operationId: createRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+  /roles/updateRole:
+    put:
+      summary: Update an existing role
+      tags:
+        - Role
+      operationId: updateRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRole'
+  /roles/getRoles:
+    get:
+      summary: Get all roles
+      tags:
+        - Role
+      operationId: getRoles
+  /room/createRoom:
+    post:
+      summary: Create a new room
+      operationId: CreateRoom
+      tags:
+        - Room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Room'
+      responses:
+        '200':
+          description: Created room object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+        '400':
+          description: Validation error or other client-side error
+  /room/getAllRooms:
+    get:
+      summary: Get all rooms
+      operationId: GetRooms
+      tags:
+        - Room
+      responses:
+        '200':
+          description: An array of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Room'
+        '400':
+          description: Error fetching rooms
+  /auth/signup:
+    post:
+      summary: Sign up a new user
+      tags:
+        - Auth
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUp'
+  /auth/signin:
+    post:
+      summary: Sign in an existing user
+      tags:
+        - Auth
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignIn'
+  /auth/logout:
+    post:
+      summary: Logout the current user
+      tags:
+        - Auth
+      operationId: logout
+  /auth/listAllPendingUsers:
+    get:
+      summary: List all pending users
+      tags:
+        - User
+      operationId: listAllPendingUsers
+  /auth/cancelAccount:
+    delete:
+      summary: Cancel the user account
+      tags:
+        - User
+      operationId: cancelAccount
+  /auth/approveUser:
+    patch:
+      summary: Approve a user
+      tags:
+        - User
+      operationId: approveUser
+  /auth/disapproveUser:
+    patch:
+      summary: Disapprove a user
+      tags:
+        - User
+      operationId: disapproveUser
+  /auth/createUser:
+    post:
+      summary: Create a new user
+      tags:
+        - User
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+  /auth/getMyData:
+    get:
+      summary: Get data of the authenticated user
+      tags:
+        - User
+      operationId: getMyData
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          required: true
+  /auth/updateUser:
+    patch:
+      summary: Update a user
+      tags:
+        - User
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUser'
+  /auth/getUserName:
+    get:
+      summary: Get the username by email
+      tags:
+        - User
+      operationId: getUserName
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          required: true
+components:
+  schemas:
+    Building:
+      type: object
+      required:
+        - code
+        - name
+        - description
+        - width
+        - length
+      properties:
+        code:
+          type: string
+          description: Unique identifier for the building
+        name:
+          type: string
+          description: Name of the building
+        description:
+          type: string
+          maxLength: 255
+          description: Description of the building
+        width:
+          type: string
+          description: Width of the building
+        length:
+          type: string
+          description: Length of the building
+    Elevator:
+      type: object
+      required:
+        - BuildingCode
+        - ElevatorCode
+        - FloorsAttended
+        - marca
+        - modelo
+      properties:
+        BuildingCode:
+          type: string
+          description: Code of the building
+        ElevatorCode:
+          type: string
+          description: Code of the elevator
+        FloorsAttended:
+          type: array
+          items:
+            type: integer
+          description: List of floors attended by the elevator
+        marca:
+          type: string
+          description: Brand of the elevator
+        modelo:
+          type: string
+          description: Model of the elevator
+        NumSerie:
+          type: string
+          description: Serial number of the elevator
+        Description:
+          type: string
+          description: Description of the elevator
+    Floor:
+      type: object
+      required:
+        - name
+        - description
+        - buildingCode
+        - level
+        - width
+        - length
+      properties:
+        name:
+          type: string
+          description: Name of the floor
+        description:
+          type: string
+          description: Description of the floor
+        buildingCode:
+          type: string
+          description: Code of the building
+        level:
+          type: integer
+          description: Level of the floor
+        width:
+          type: string
+          description: Width of the floor
+        length:
+          type: string
+          description: Length of the floor
+    Passage:
+      type: object
+      required:
+        - codigo
+        - codeBuilding1
+        - codeBuilding2
+        - FloorBuilding1Name
+        - FloorBuilding2Name
+      properties:
+        codigo:
+          type: string
+        codeBuilding1:
+          type: string
+        codeBuilding2:
+          type: string
+        FloorBuilding1Name:
+          type: string
+        FloorBuilding2Name:
+          type: string
+    InhibitRobot:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+    CreateRobot:
+      type: object
+      required:
+        - code
+        - nickname
+        - robotTypeCode
+        - serialNumber
+        - status
+      properties:
+        code:
+          type: string
+        nickname:
+          type: string
+        robotTypeCode:
+          type: string
+        serialNumber:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+    RobotType:
+      type: object
+      required:
+        - code
+        - description
+        - tasksCode
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+        tasksCode:
+          type: array
+          items:
+            type: string
+    Role:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    UpdateRole:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Room:
+      type: object
+      required:
+        - name
+        - description
+        - roomtype
+      properties:
+        name:
+          type: string
+          description: Name of the room
+        description:
+          type: string
+          description: Description of the room
+        roomtype:
+          type: string
+          description: Type of the room
+        floorName:
+          type: string
+          description: Name of the floor where the room is located
+    SignUp:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+        - email
+        - password
+        - role
+        - estado
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        taxpayerNumber:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+        estado:
+          type: string
+    SignIn:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    CreateUser:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+        - email
+        - password
+        - role
+        - estado
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+        estado:
+          type: string
+    UpdateUser:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+tags: []

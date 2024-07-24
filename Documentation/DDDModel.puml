@@ -1,0 +1,75 @@
+@startuml
+package "Report Aggregate" {
+
+    entity Report<<Aggregate Root>>{
+    }
+
+    class TestMetrics {
+totalRequests
+CodeCoverage
+UniqueCrashes
+}
+
+    class HTTPRequest {
+        url
+        method
+    }
+
+class Header<<valueObject>> {
+}
+
+class Parameter<<valueObject>> {
+    name
+    in
+    required
+}
+
+class RequestBody<<valueObject>>{
+    content
+}
+
+class RequestResponse<<ValueObject>> {
+    statusCode
+    headers
+    body
+}
+
+
+
+}
+class Schema<<valueObject>> {
+}
+
+class Name<<valueObject>>{
+}
+
+class Format<<valueObject>>{
+}
+
+class Atributte<<valueObject>>{
+ type
+ name
+ value
+ Is_id
+}
+class Object<<valueObject>>{
+
+}
+
+RequestResponse "*" --> "1" TestMetrics : generates >
+HTTPRequest "1" --> "1" RequestResponse : receives >
+
+HTTPRequest "1" -- "1..*" Header : contains >
+HTTPRequest "1" -- "0..1" Parameter : has >
+
+HTTPRequest "1" -- "0..1" RequestBody : has >
+Schema "1" -- "1..*" Object: is composed by  >
+Parameter "1" -- "1" Schema : has >
+RequestBody "1" -- "1" Schema : has >
+Atributte "1" -- "1" Format : has >
+Schema "1" -- "1" Name : has >
+Object "1" -- "1..*" Atributte : has >
+Report "1" -- "1" TestMetrics : has >
+Report "1" -- "*" HTTPRequest : has >
+
+@enduml

@@ -1,6 +1,6 @@
 openapi: 3.0.0
 servers:
-  - url: http://localhost:81/v3
+  - url: http://localhost:65/v3
 paths:
   "/pet":
     put:

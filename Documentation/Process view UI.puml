@@ -1,0 +1,16 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+actor Tester
+participant FuzzTheRest
+activate Tester
+Tester -> FuzzTheRest: Requests to see fuzzing metrics
+activate FuzzTheRest
+FuzzTheRest -> Tester: asks for Specific fuzzing iteration
+deactivate FuzzTheRest
+Tester -> FuzzTheRest:Chooses the fuzzing iteration
+activate FuzzTheRest
+FuzzTheRest -> Tester: Displays the fuzzing metrics
+@enduml

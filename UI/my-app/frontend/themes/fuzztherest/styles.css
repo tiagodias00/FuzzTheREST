@@ -1,0 +1,57 @@
+@import url('./main-layout.css');
+@import url('./views/login-view.css');
+@import url('./views/start-fuzzing-view.css');    html {
+      --lumo-border-radius-s: calc(var(--lumo-size-m) / 6);
+      --lumo-border-radius-m: calc(var(--lumo-size-m) / 2);
+      --lumo-border-radius-l: var(--lumo-size-m);
+
+    }
+.scrollable-listbox {
+    max-height: 300px;
+    max-width: 1000px;
+    overflow-y: auto;
+}
+/* styles.css */
+.fuzzing-attempt-combobox {
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.fuzzing-attempt-combobox:hover,
+.fuzzing-attempt-combobox:focus {
+    outline: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.fuzzing-attempt-combobox::placeholder {
+    color: #999;
+}
+
+.fuzzing-attempt-combobox option {
+    background-color: #fff;
+    color: #333;
+}
+.wrap-cell-content .vaadin-grid-cell-content {
+    flex: none !important;
+    white-space: normal !important;
+    word-wrap: break-word;
+}
+
+.crash-details {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.crash-details div {
+    margin: 5px 0;
+}
+
+

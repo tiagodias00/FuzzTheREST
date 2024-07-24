@@ -1,0 +1,78 @@
+@startuml
+
+class RequestResponse {
+    statusCode
+    headers
+    body
+}
+
+class TestMetrics {
+totalRequests
+CodeCoverage
+UniqueCrashes
+}
+
+class OpenApiSpecifications {
+endpoints
+parameters
+schemas
+}
+class HTTPRequest {
+    url
+    method
+}
+
+class Report{
+}
+
+class Header {
+}
+
+class Parameter {
+    name
+    in
+    required
+}
+
+class RequestBody{
+    content
+}
+
+
+class Schema {
+}
+
+class Name{
+}
+
+class Format{
+}
+
+class Atributte{
+ type
+ name
+ value
+ Is_id
+}
+class Object{
+
+}
+
+OpenApiSpecifications "1" --> "*" HTTPRequest : informs Creation >
+RequestResponse "1" --> "1" TestMetrics : generates >
+HTTPRequest "1" --> "1" RequestResponse : receives >
+
+HTTPRequest "1" -- "1..*" Header : contains >
+HTTPRequest "1" -- "0..1" Parameter : has >
+
+HTTPRequest "1" -- "0..1" RequestBody : has >
+Schema "1" -- "1..*" Object: is composed by  >
+Parameter "1" -- "1" Schema : has >
+RequestBody "1" -- "1" Schema : has >
+Atributte "1" -- "1" Format : has >
+Schema "1" -- "1" Name : has >
+Object "1" -- "1..*" Atributte : has >
+Report "1" -- "1" TestMetrics : has >
+Report "1" -- "*" HTTPRequest : has >
+
+@enduml
